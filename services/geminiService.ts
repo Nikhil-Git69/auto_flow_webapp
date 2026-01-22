@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Issue, IssueSeverity, IssueType } from "../types";
 
-const API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyDf7_vrEVXt285B0CRwx2nwr75jLnyl-OU";
+const API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyD0Y3eJ3t5S63HNNHMnTPo6BfI1CAVYH8E";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 const parseGeminiResponse = (text: string) => {
