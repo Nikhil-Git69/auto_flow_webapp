@@ -10,7 +10,7 @@
 //     const base64Data = originalBase64.includes('base64,') 
 //       ? originalBase64.split('base64,')[1] 
 //       : originalBase64;
-    
+
 //     const existingPdfBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 //     const pdfDoc = await PDFDocument.load(existingPdfBytes);
 //     const pages = pdfDoc.getPages();
@@ -49,16 +49,16 @@
 //     }
 
 //     // --- FIX FOR THE BLOBPART ERROR START ---
-    
+
 //     // 1. Get the bytes from pdf-lib
 //     const pdfBytes = await pdfDoc.save();
-    
+
 //     // 2. Explicitly copy to a new Uint8Array to resolve the SharedArrayBuffer conflict
 //     const safeBytes = new Uint8Array(pdfBytes);
-    
+
 //     // 3. Cast as any to bypass the strict TS BlobPart check if it persists
 //     const blob = new Blob([safeBytes as any], { type: 'application/pdf' });
-    
+
 //     // --- FIX FOR THE BLOBPART ERROR END ---
 
 //     const downloadUrl = URL.createObjectURL(blob);
@@ -67,7 +67,7 @@
 //     link.download = `Corrected_${fileName.replace(/\s+/g, '_')}`;
 //     document.body.appendChild(link);
 //     link.click();
-    
+
 //     document.body.removeChild(link);
 //     URL.revokeObjectURL(downloadUrl);
 
@@ -93,7 +93,7 @@
 //     const isWord = isWordFile(mimeType || '') || 
 //                    fileName.toLowerCase().endsWith('.docx') || 
 //                    fileName.toLowerCase().endsWith('.doc');
-    
+
 //     const isPDF = isPDFFile(mimeType || '') || fileName.toLowerCase().endsWith('.pdf');
 //     const fixedIssues = issues.filter(i => i.isFixed);
 
@@ -139,10 +139,10 @@
 //   try {
 //     const fixedIssues = issues.filter(i => i.isFixed);
 //     const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    
+
 //     // Create HTML content for Word document
 //     const content = editedContent || 'No content available';
-    
+
 //     const docContent = `
 // <!DOCTYPE html>
 // <html>
@@ -218,7 +218,7 @@
 // </head>
 // <body>
 //   <h1>Corrected Document: ${fileName}</h1>
-  
+
 //   <div class="document-info">
 //     <p><strong>Export Date:</strong> ${new Date().toLocaleString()}</p>
 //     <p><strong>Applied Corrections:</strong> ${fixedIssues.length} of ${issues.length} issues</p>
@@ -285,7 +285,7 @@
 
 //   } catch (error) {
 //     console.error('Word export error:', error);
-    
+
 //     // Fallback to simple text export
 //     const fallbackContent = editedContent || 'No content available';
 //     const simpleBlob = new Blob([fallbackContent], { type: 'text/plain' });
@@ -310,7 +310,7 @@
 //     const base64Data = originalBase64.includes('base64,') 
 //       ? originalBase64.split('base64,')[1] 
 //       : originalBase64;
-    
+
 //     const existingPdfBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
 //     const pdfDoc = await PDFDocument.load(existingPdfBytes);
 //     const pages = pdfDoc.getPages();
@@ -362,7 +362,7 @@
 //     if (fixedIssues.length > 0) {
 //       const lastPage = pages[pages.length - 1];
 //       const { width, height } = lastPage.getSize();
-      
+
 //       // Add a note about corrections
 //       page.drawText(`Document contains ${fixedIssues.length} corrections`, {
 //         x: 50,
@@ -382,11 +382,11 @@
 //     const downloadUrl = URL.createObjectURL(blob);
 //     const link = document.createElement('a');
 //     link.href = downloadUrl;
-    
+
 //     // Create filename with timestamp
 //     const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
 //     link.download = `Corrected_${fileName.replace(/\.[^/.]+$/, '')}_${timestamp}.pdf`;
-    
+
 //     document.body.appendChild(link);
 //     link.click();
 //     document.body.removeChild(link);
@@ -413,7 +413,7 @@
 //   try {
 //     const fixedIssues = issues.filter(i => i.isFixed);
 //     const timestamp = new Date().toISOString().split('T')[0];
-    
+
 //     const textContent = `CORRECTED DOCUMENT
 // ========================
 // File: ${fileName}
@@ -459,42 +459,47 @@ export const exportCorrectedDocument = async (
   fileName: string,
   editedContent?: string,
   mimeType?: string,
-  analysisId?: string
+  analysisId?: string,
+  format: 'original' | 'html' | 'pdf' = 'original'
 ): Promise<void> => {
   try {
     // Check file type
-    const isWord = isWordFile(mimeType || '') || 
-                   fileName.toLowerCase().endsWith('.docx') || 
-                   fileName.toLowerCase().endsWith('.doc');
-    
+    const isWord = isWordFile(mimeType || '') ||
+      fileName.toLowerCase().endsWith('.docx') ||
+      fileName.toLowerCase().endsWith('.doc');
+
     const isPDF = isPDFFile(mimeType || '') || fileName.toLowerCase().endsWith('.pdf');
     const fixedIssues = issues.filter(i => i.isFixed);
 
-    // Validate export conditions
-    if (!isWord && fixedIssues.length === 0) {
+    // Validate export conditions (relaxed for edit mode export)
+    if (!isWord && fixedIssues.length === 0 && format !== 'html') {
       alert("Please fix (click 'Apply Fix') at least one issue before exporting.");
       return;
     }
 
     console.log('Exporting document:', {
       fileName,
+      format,
       isWord,
       isPDF,
-      fixedIssues: fixedIssues.length,
-      totalIssues: issues.length,
-      hasEdits: !!editedContent,
-      hasAnalysisId: !!analysisId
+      hasEdits: !!editedContent
     });
 
-    if (isWord) {
-      // Export Word document
+    // Logic based on requested format
+    if (format === 'html' || (isWord && format === 'original')) {
+      // Export as Word/HTML (EDITION FORMAT)
       await exportWordDocument(fileName, issues, editedContent, analysisId);
-    } else if (isPDF) {
-      // Export PDF document (original logic)
-      await exportPDFDocument(originalBase64, issues, fileName);
+    } else if (format === 'pdf' || (isPDF && format === 'original')) {
+      // Export as PDF (Visual highlights if PDF)
+      if (isPDF) {
+        await exportPDFDocument(originalBase64, issues, fileName);
+      } else {
+        // Word to PDF fallback (not implemented fully on client, stick to Word export or alert)
+        await exportWordDocument(fileName, issues, editedContent, analysisId); // Fallback to word for now
+      }
     } else {
-      // For other file types, try PDF export as fallback
-      await exportPDFDocument(originalBase64, issues, fileName);
+      // Default fallback
+      await exportWordDocument(fileName, issues, editedContent, analysisId);
     }
   } catch (error) {
     console.error("Export Error:", error);
@@ -512,10 +517,10 @@ const exportWordDocument = async (
   try {
     const fixedIssues = issues.filter(i => i.isFixed);
     const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
-    
+
     // Create HTML content for Word document
     const content = editedContent || 'No content available';
-    
+
     const docContent = `
 <!DOCTYPE html>
 <html>
@@ -658,7 +663,7 @@ const exportWordDocument = async (
 
   } catch (error) {
     console.error('Word export error:', error);
-    
+
     // Fallback to simple text export
     const fallbackContent = editedContent || 'No content available';
     const simpleBlob = new Blob([fallbackContent], { type: 'text/plain' });
@@ -680,10 +685,10 @@ const exportPDFDocument = async (
   fileName: string
 ): Promise<void> => {
   try {
-    const base64Data = originalBase64.includes('base64,') 
-      ? originalBase64.split('base64,')[1] 
+    const base64Data = originalBase64.includes('base64,')
+      ? originalBase64.split('base64,')[1]
       : originalBase64;
-    
+
     const existingPdfBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
     const pdfDoc = await PDFDocument.load(existingPdfBytes);
     const pages = pdfDoc.getPages();
@@ -735,7 +740,7 @@ const exportPDFDocument = async (
     if (fixedIssues.length > 0 && pages.length > 0) {
       const lastPage = pages[pages.length - 1];
       const { width, height } = lastPage.getSize();
-      
+
       // Add a note about corrections at the bottom of the last page
       lastPage.drawText(`Document contains ${fixedIssues.length} corrections - Generated ${new Date().toLocaleDateString()}`, {
         x: 50,
@@ -755,11 +760,11 @@ const exportPDFDocument = async (
     const downloadUrl = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = downloadUrl;
-    
+
     // Create filename with timestamp
     const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
     link.download = `Corrected_${fileName.replace(/\.[^/.]+$/, '')}_${timestamp}.pdf`;
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -786,7 +791,7 @@ export const exportAsText = async (
   try {
     const fixedIssues = issues.filter(i => i.isFixed);
     const timestamp = new Date().toISOString().split('T')[0];
-    
+
     const textContent = `CORRECTED DOCUMENT
 ========================
 File: ${fileName}

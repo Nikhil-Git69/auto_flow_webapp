@@ -1,421 +1,4 @@
-// export enum IssueSeverity {
-//   CRITICAL = 'Critical',
-//   RECOMMENDED = 'Recommended',
-//   COSMETIC = 'Cosmetic'
-// }
 
-// export enum IssueType {
-//   LAYOUT = 'Layout',
-//   GRAMMAR = 'Grammar',
-//   ACCESSIBILITY = 'Accessibility',
-//   STRUCTURE = 'Structure'
-// }
-
-// export interface Issue {
-//   id: string;
-//   type: IssueType;
-//   severity: IssueSeverity;
-//   description: string;
-//   suggestion: string;
-//   location?: string;
-//   isFixed?: boolean;
-//   // Make sure these match the names used in exportService
-//   position?: {
-//     top: number;
-//     left: number;
-//     width: number;
-//     height: number;
-//   };
-// }
-
-// export interface CorrectedDocument{
-//   originalFileName: string;
-//   correctedFileName: string;
-//   fileContent: string; // base64
-//   mimeType: string;
-//   fixesApplied: number;
-//   totalIssues: number;
-// }
-
-
-// export interface DocumentAnalysis {
-//   fileName: string;
-//   fileType: string;
-//   uploadDate: string;
-//   totalScore: number; // 0 to 100
-//   issues: Issue[];
-//   summary: string;
-// }
-
-// export interface UploadedFile {
-//   file: File;
-//   previewUrl: string;
-//   base64: string;
-//   mimeType: string;
-// }
-
-// export enum AppState {
-//   LOGIN = 'LOGIN',
-//   DASHBOARD = 'DASHBOARD',
-//   ANALYSIS = 'ANALYSIS',
-//   SETTINGS = 'SETTINGS',
-//   HOME = 'home'
-// }
-
-
-// // ========== UPDATED USER INTERFACE ==========
-// export interface User {
-//   id: string;
-//   email: string;
-//   name: string;
-//   collegeName: string;
-//   logoUrl?: string; // Optional logo for the college
-  
-//   // NEW: Optional properties for enhanced functionality
-//   role?: 'student' | 'teacher' | 'admin'; // For role-based access
-//   studentId?: string; // For students
-//   department?: string; // For teachers
-//   isActive?: boolean; // Account status
-//   lastLogin?: string; // Last login timestamp
-//   createdAt?: string; // Account creation date
-//   updatedAt?: string; // Last update date
-  
-//   // Compatibility with backend _id (MongoDB)
-//   _id?: string;
-// }
-
-// // ========== NEW TYPE FOR BACKEND RESPONSES ==========
-// export interface ApiResponse<T = any> {
-//   success: boolean;
-//   message: string;
-//   data?: T;
-//   error?: string;
-//   details?: any;
-// }
-
-// // ========== NEW TYPE FOR AUTH RESPONSES ==========
-// export interface AuthResponse {
-//   user: User;
-//   token: string;
-// }
-
-// // ========== NEW TYPE FOR REGISTRATION ==========
-// export interface RegisterData {
-//   email: string;
-//   password: string;
-//   name: string;
-//   collegeName: string;
-//   role?: 'student' | 'teacher' | 'admin';
-//   studentId?: string;
-//   department?: string;
-//   logoUrl?: string;
-// }
-
-// // ========== NEW TYPE FOR ANALYSIS STATISTICS ==========
-// export interface AnalysisStats {
-//   totalAnalyses: number;
-//   averageScore: number;
-//   highestScore: number;
-//   lowestScore: number;
-//   totalIssues: number;
-//   fileTypeBreakdown: Array<{
-//     fileType: string;
-//     count: number;
-//     avgScore: number;
-//   }>;
-// }
-
-// // ========== NEW TYPE FOR PAGINATION ==========
-// export interface Pagination<T = any> {
-//   data: T[];
-//   page: number;
-//   limit: number;
-//   total: number;
-//   pages: number;
-//   hasNext: boolean;
-//   hasPrev: boolean;
-// }
-
-// // ========== NEW TYPE FOR FILTERING ==========
-// export interface AnalysisFilters {
-//   userId?: string;
-//   fileType?: string;
-//   minScore?: number;
-//   maxScore?: number;
-//   page?: number;
-//   limit?: number;
-//   search?: string;
-// }
-
-// // ========== HELPER TYPES FOR COMPATIBILITY ==========
-// // This ensures backward compatibility
-// export type UserWithRole = User & { role: 'student' | 'teacher' | 'admin' };
-// export type StudentUser = User & { role: 'student'; studentId: string };
-// export type TeacherUser = User & { role: 'teacher'; department: string };
-// export enum IssueSeverity {
-//   CRITICAL = 'Critical',
-//   RECOMMENDED = 'Recommended',
-//   COSMETIC = 'Cosmetic'
-// }
-
-// export enum IssueType {
-//   LAYOUT = 'Layout',
-//   GRAMMAR = 'Grammar',
-//   ACCESSIBILITY = 'Accessibility',
-//   STRUCTURE = 'Structure'
-// }
-
-// export interface Issue {
-//   id: string;
-//   type: IssueType;
-//   severity: IssueSeverity;
-//   description: string;
-//   suggestion: string;
-//   location?: string;
-//   isFixed?: boolean;
-//   position?: {
-//     top: number;
-//     left: number;
-//     width: number;
-//     height: number;
-//   };
-//   // NEW: For Word document editing
-//   originalText?: string;
-//   correctedText?: string;
-//   context?: string;
-//   startIndex?: number;
-//   endIndex?: number;
-// }
-
-// export interface CorrectedDocument{
-//   originalFileName: string;
-//   correctedFileName: string;
-//   fileContent: string; // base64
-//   mimeType: string;
-//   fixesApplied: number;
-//   totalIssues: number;
-// }
-
-// export interface DocumentAnalysis {
-//   analysisId: string;
-//   fileName: string;
-//   fileType: string;
-//   uploadDate: string;
-//   totalScore: number;
-//   issues: AnalysisIssue[];
-//   summary: string;
-//   // Add these properties that you're trying to use:
-//   formatType?: string; // Make it optional if it's not always present
-//   processedContent?: string;
-//   formatRequirements?: string;
-//   // You might also want these from your API response:
-//   correctedDocumentUrl?: string;
-//   analyzedAt?: string;
-//   wordCount?: number;
-//   suggestions?: string[];
-// }
-
-// export interface UploadedFile {
-//   file: File;
-//   previewUrl: string;
-//   base64: string;
-//   mimeType: string;
-//   // NEW: Properties for Word document support
-//   textContent?: string;
-//   rawData?: ArrayBuffer;
-//   analysisId?: string; // NEW: To link with backend analysis
-// }
-
-// export enum AppState {
-//   LOGIN = 'LOGIN',
-//   DASHBOARD = 'DASHBOARD',
-//   ANALYSIS = 'ANALYSIS',
-//   SETTINGS = 'SETTINGS',
-//   HOME = 'home'
-// }
-
-// export interface User {
-//   id: string;
-//   email: string;
-//   name: string;
-//   collegeName: string;
-//   logoUrl?: string;
-//   role?: 'student' | 'teacher' | 'admin';
-//   studentId?: string;
-//   department?: string;
-//   isActive?: boolean;
-//   lastLogin?: string;
-//   createdAt?: string;
-//   updatedAt?: string;
-//   _id?: string;
-// }
-
-// export interface ApiResponse<T = any> {
-//   success: boolean;
-//   message: string;
-//   data?: T;
-//   error?: string;
-//   details?: any;
-// }
-
-// export interface AuthResponse {
-//   user: User;
-//   token: string;
-// }
-
-// export interface RegisterData {
-//   email: string;
-//   password: string;
-//   name: string;
-//   collegeName: string;
-//   role?: 'student' | 'teacher' | 'admin';
-//   studentId?: string;
-//   department?: string;
-//   logoUrl?: string;
-// }
-
-// export interface AnalysisStats {
-//   totalAnalyses: number;
-//   averageScore: number;
-//   highestScore: number;
-//   lowestScore: number;
-//   totalIssues: number;
-//   fileTypeBreakdown: Array<{
-//     fileType: string;
-//     count: number;
-//     avgScore: number;
-//   }>;
-// }
-
-// export interface Pagination<T = any> {
-//   data: T[];
-//   page: number;
-//   limit: number;
-//   total: number;
-//   pages: number;
-//   hasNext: boolean;
-//   hasPrev: boolean;
-// }
-
-// export interface AnalysisFilters {
-//   userId?: string;
-//   fileType?: string;
-//   minScore?: number;
-//   maxScore?: number;
-//   page?: number;
-//   limit?: number;
-//   search?: string;
-// }
-
-// export type UserWithRole = User & { role: 'student' | 'teacher' | 'admin' };
-// export type StudentUser = User & { role: 'student'; studentId: string };
-// export type TeacherUser = User & { role: 'teacher'; department: string };
-
-// // ========== NEW TYPES FOR WORD DOCUMENT SUPPORT ==========
-// export enum ExportFormat {
-//   PDF = 'pdf',
-//   DOCX = 'docx',
-//   DOC = 'doc',
-//   TXT = 'txt'
-// }
-
-// export interface DocumentExportOptions {
-//   format: ExportFormat;
-//   includeTrackChanges?: boolean;
-//   preserveFormatting?: boolean;
-//   includeSummary?: boolean;
-//   fileName: string;
-// }
-
-// export interface WordDocumentContent {
-//   html: string;
-//   plainText: string;
-//   paragraphs: Array<{
-//     text: string;
-//     style?: string;
-//     isHeading?: boolean;
-//   }>;
-//   metadata: {
-//     wordCount: number;
-//     pageCount?: number;
-//     language: string;
-//     author?: string;
-//   };
-// }
-
-// export interface DocumentEdit {
-//   issueId: string;
-//   originalText: string;
-//   newText: string;
-//   timestamp: string;
-//   appliedBy: 'user' | 'ai';
-//   location?: {
-//     paragraphIndex: number;
-//     startIndex: number;
-//     endIndex: number;
-//   };
-// }
-
-// export interface FileProcessingResult {
-//   success: boolean;
-//   fileType: 'pdf' | 'docx' | 'doc' | 'txt' | 'image';
-//   content: WordDocumentContent | string;
-//   metadata: {
-//     size: number;
-//     pages?: number;
-//     wordCount?: number;
-//     language?: string;
-//   };
-//   error?: string;
-// }
-
-// export interface ExportServiceRequest {
-//   fileData: string | ArrayBuffer;
-//   issues: Issue[];
-//   fileName: string;
-//   mimeType: string;
-//   exportFormat?: ExportFormat;
-//   editedContent?: string;
-//   includeTrackChanges?: boolean;
-//   analysisId?: string; // NEW: Added for backend export
-// }
-
-// export interface ExportServiceResponse {
-//   success: boolean;
-//   downloadUrl: string;
-//   fileName: string;
-//   fileSize: number;
-//   mimeType: string;
-//   message?: string;
-// }
-
-// // Type guards for checking file types
-// export function isWordFile(mimeType: string): boolean {
-//   return mimeType.includes('word') || 
-//          mimeType.includes('document') ||
-//          mimeType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
-//          mimeType.includes('application/msword');
-// }
-
-// export function isPDFFile(mimeType: string): boolean {
-//   return mimeType.includes('pdf') || mimeType.includes('application/pdf');
-// }
-
-// export function isEditableFile(mimeType: string): boolean {
-//   return isWordFile(mimeType) || 
-//          mimeType.includes('text/plain') || 
-//          mimeType.includes('text/html');
-// }
-
-// export function getFileExtension(filename: string): string {
-//   return filename.split('.').pop()?.toLowerCase() || '';
-// }
-
-// export function canPreviewInline(mimeType: string): boolean {
-//   return isPDFFile(mimeType) || 
-//          mimeType.startsWith('image/') || 
-//          mimeType.includes('text/');
-// }
 export enum IssueSeverity {
   CRITICAL = 'Critical',
   MAJOR = 'Major', // ADDED: For topology/alignment issues
@@ -494,7 +77,9 @@ export interface DocumentAnalysis {
   formatType?: string;
   processedContent?: string;
   formatRequirements?: string;
-  correctedDocumentUrl?: string;
+  correctedDocumentUrl?: string; // Existing URL-based
+  correctedContent?: string;     // NEW: For Word/Text
+  correctedPdfBase64?: string;   // NEW: For PDF visual correction
   analyzedAt?: string;
   wordCount?: number;
   suggestions?: string[];
@@ -502,10 +87,10 @@ export interface DocumentAnalysis {
   fileData?: any;
   status?: string;
   userId?: string;
-  
+
   // ADDED: Topology analysis fields
   analysisType?: 'standard' | 'topology_focused' | 'visual_analysis' | 'programmatic_fallback';
-  geminiModel?: string; 
+  geminiModel?: string;
   pdfStructure?: {
     margins?: {
       top: number;
@@ -536,6 +121,11 @@ export interface DocumentAnalysis {
     overallTopologyScore?: number; // 0-100%
   };
   visualAnalysisPerformed?: boolean;
+  metadata?: {
+    company?: string;
+    date?: string;
+    type?: string;
+  };
   // Add backend properties that might come from API
   _id?: string; // MongoDB ID
   createdAt?: string;
@@ -557,11 +147,17 @@ export interface AnalysisApiResponse {
   wordCount?: number;
   fileSize?: number;
   status?: string;
+  correctedContent?: string; // AI corrected content
   // ADDED: Topology fields for API response
   analysisType?: string;
   geminiModel?: string;
   pdfStructure?: any;
   structureAnalysis?: any;
+  metadata?: {
+    company?: string;
+    date?: string;
+    type?: string;
+  };
 }
 
 export interface UploadedFile {
@@ -817,10 +413,10 @@ export interface ExportServiceResponse {
 
 // Type guards for checking file types
 export function isWordFile(mimeType: string): boolean {
-  return mimeType.includes('word') || 
-         mimeType.includes('document') ||
-         mimeType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
-         mimeType.includes('application/msword');
+  return mimeType.includes('word') ||
+    mimeType.includes('document') ||
+    mimeType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+    mimeType.includes('application/msword');
 }
 
 export function isPDFFile(mimeType: string): boolean {
@@ -828,9 +424,9 @@ export function isPDFFile(mimeType: string): boolean {
 }
 
 export function isEditableFile(mimeType: string): boolean {
-  return isWordFile(mimeType) || 
-         mimeType.includes('text/plain') || 
-         mimeType.includes('text/html');
+  return isWordFile(mimeType) ||
+    mimeType.includes('text/plain') ||
+    mimeType.includes('text/html');
 }
 
 export function getFileExtension(filename: string): string {
@@ -838,9 +434,9 @@ export function getFileExtension(filename: string): string {
 }
 
 export function canPreviewInline(mimeType: string): boolean {
-  return isPDFFile(mimeType) || 
-         mimeType.startsWith('image/') || 
-         mimeType.includes('text/');
+  return isPDFFile(mimeType) ||
+    mimeType.startsWith('image/') ||
+    mimeType.includes('text/');
 }
 
 // ADDED: Check if file supports topology analysis
@@ -957,6 +553,8 @@ export function convertApiResponseToAnalysis(apiData: any): DocumentAnalysis {
     summary: apiData.summary || '',
     formatType: apiData.formatType,
     processedContent: apiData.processedContent,
+    correctedContent: apiData.correctedContent, // NEW
+    correctedPdfBase64: apiData.correctedPdfBase64, // NEW
     formatRequirements: apiData.formatRequirements,
     analyzedAt: apiData.analyzedAt,
     wordCount: apiData.wordCount,
@@ -1009,8 +607,8 @@ export interface TopologyMetrics {
 // NEW: Structure analysis result
 export interface StructureAnalysis {
   detectedFont?: string;
-  pageDimensions?: Array<{width: number; height: number}>;
-  margins?: {top: number; bottom: number; left: number; right: number};
+  pageDimensions?: Array<{ width: number; height: number }>;
+  margins?: { top: number; bottom: number; left: number; right: number };
   lineSpacing?: number[];
   paragraphSpacing?: number[];
   textBlocks?: any[];

@@ -11,11 +11,13 @@
   "dependencies": {
     "@google/genai": "^1.32.0",
     "@google/generative-ai": "^0.24.1",
+    "@tinymce/tinymce-react": "^6.3.0",
     "axios": "^1.13.2",
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "file-saver": "^2.0.5",
     "file-type": "^21.3.0",
+    "framer-motion": "^12.29.2",
     "lucide-react": "^0.556.0",
     "mammoth": "^1.11.0",
     "multer": "^2.0.2",
@@ -27,11 +29,15 @@
     "react-dropzone": "^14.3.8",
     "react-router-dom": "^6.30.3",
     "recharts": "^3.5.1",
-    "textract": "^2.5.0"
+    "textract": "^2.5.0",
+    "tinymce": "^8.3.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.24",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }

@@ -1,20 +1,20 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Issue, IssueSeverity, IssueType } from "../types";
 
-const API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyD0Y3eJ3t5S63HNNHMnTPo6BfI1CAVYH8E";
+const API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyC7D90KOJFwJk-Suz8PYZKZZ4LbnAxqw9I";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
 const parseGeminiResponse = (text: string) => {
   try {
-    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || 
-                     text.match(/```\n([\s\S]*?)\n```/) ||
-                     text.match(/{[\s\S]*?}/);
-    
+    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) ||
+      text.match(/```\n([\s\S]*?)\n```/) ||
+      text.match(/{[\s\S]*?}/);
+
     if (!jsonMatch) throw new Error("No JSON found");
-    
+
     const jsonStr = jsonMatch[1] || jsonMatch[0];
     const parsed = JSON.parse(jsonStr);
-    
+
     const issues: Issue[] = (parsed.issues || []).map((issue: any, index: number) => {
       // STRICT MAPPING: Ensure AI strings match your IssueType enum keys
       let type = IssueType.STRUCTURE;
@@ -64,8 +64,8 @@ export const analyzeDocumentWithGemini = async (
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    const pureBase64 = base64Data.includes('base64,') 
-      ? base64Data.split('base64,')[1] 
+    const pureBase64 = base64Data.includes('base64,')
+      ? base64Data.split('base64,')[1]
       : base64Data;
 
     // STRICT PROMPT: Forces the AI to find errors and use coordinates
@@ -109,9 +109,9 @@ export const analyzeDocumentWithGemini = async (
 };
 
 const getRealisticMockAnalysis = (mimeType: string) => {
-    return { 
-      score: 0, 
-      issues: [], 
-      summary: "The AI service is currently unavailable. Please check your API key or connection." 
-    };
+  return {
+    score: 0,
+    issues: [],
+    summary: "The AI service is currently unavailable. Please check your API key or connection."
+  };
 };
