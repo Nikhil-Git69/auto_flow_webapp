@@ -498,15 +498,30 @@ const App: React.FC = () => {
                   isProcessing={isProcessing}
                   history={historyMap[user._id || user.id] || []}
                   onLogout={handleLogout}
-                  onDeleteDocument={(fileName, uploadDate) => {
+                  onDeleteDocument={async (fileName, uploadDate) => {
                     const userId = user._id || user.id;
-                    setHistoryMap(prev => ({
-                      ...prev,
-                      [userId]: (prev[userId] || []).filter(
-                        doc => !(doc.fileName === fileName && doc.uploadDate === uploadDate)
-                      )
-                    }));
-                    addToast('Document deleted from history', 'info');
+                    try {
+                      // Find the document in history to get its analysisId
+                      const userHistory = historyMap[userId] || [];
+                      const document = userHistory.find(
+                        doc => doc.fileName === fileName && doc.uploadDate === uploadDate
+                      );
+
+                      if (!document || !document.analysisId) {
+                        throw new Error('Document not found or missing analysisId');
+                      }
+
+                      // Delete from backend using the correct method
+                      await analysisApi.delete(document.analysisId);
+
+                      // Reload history from backend to ensure sync
+                      await loadHistory();
+
+                      addToast('Document deleted from history', 'success');
+                    } catch (error: any) {
+                      console.error('Failed to delete analysis:', error);
+                      addToast('Failed to delete document', 'error');
+                    }
                   }}
                 />
               ) : <Navigate to="/login" replace />
