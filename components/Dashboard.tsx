@@ -1,40 +1,55 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import FileUpload from './FileUpload';
-import { DocumentAnalysis, User } from '../types';
-import { 
-  FileText, LogOut, Home, Ruler, Type, AlignLeft, 
+import { DocumentAnalysis, User, Workspace } from '../types';
+import AnalysisSummaryModal from './AnalysisSummaryModal';
+import {
+  FileText, LogOut, Home, Ruler, Type, AlignLeft,
   ChevronDown, ChevronUp, Upload, Download, Trash2,
   Search, Settings,
   Users2,
   BarChart3,
   Files,
-  Settings2
+  Settings2,
+  FolderInput // Added import
 } from 'lucide-react';
 import Stats from './Stats';
 
 interface DashboardProps {
   user: User;
+  workspaces?: Workspace[]; // Added prop
   onFileSelect: (file: File, formatType?: string, templateFile?: File, formatRequirements?: string) => void;
+  onAddToWorkspace?: (doc: DocumentAnalysis, workspaceId: string) => void; // Added prop
   isProcessing: boolean;
   history: DocumentAnalysis[];
   onLogout: () => void;
   onDeleteDocument: (fileName: string, uploadDate: string) => void;
-  onNavigateHome?: () => void; // This goes to Profile
+  onNavigateProfile?: () => void;
+  onNavigateSettings?: () => void;
+  onViewAnalysis?: (doc: DocumentAnalysis) => void; // Added prop
 }
 
 const Dashboard: React.FC<DashboardProps> = ({
   user,
+  workspaces = [], // Default to empty array
   onFileSelect,
+  onAddToWorkspace,
   isProcessing,
   history = [],
   onLogout,
   onDeleteDocument,
-  onNavigateHome
+  onNavigateProfile,
+  onNavigateSettings,
+  onViewAnalysis
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [formatType, setFormatType] = useState<'default' | 'custom'>('default');
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [formatRequirements, setFormatRequirements] = useState<string>('');
+
+  // New state for workspace modal
+  const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
+  const [selectedDocForUpload, setSelectedDocForUpload] = useState<DocumentAnalysis | null>(null);
+  const [viewAnalysis, setViewAnalysis] = useState<DocumentAnalysis | null>(null); // State for view modal
 
   // ... (Keep all your existing FormatField logic and initialFormatFields exactly as they are)
   const initialFormatFields: Record<string, any[]> = {
@@ -90,14 +105,14 @@ const Dashboard: React.FC<DashboardProps> = ({
           {fields.map((field, index) => (
             <div key={field.id} className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase">{field.label}</label>
-              <select 
-                value={field.value} 
+              <select
+                value={field.value}
                 onChange={(e) => {
-                    const val = e.target.value;
-                    setFormatFields(prev => ({
-                        ...prev,
-                        [sectionKey]: prev[sectionKey].map((f: any, i: number) => i === index ? {...f, value: val} : f)
-                    }));
+                  const val = e.target.value;
+                  setFormatFields(prev => ({
+                    ...prev,
+                    [sectionKey]: prev[sectionKey].map((f: any, i: number) => i === index ? { ...f, value: val } : f)
+                  }));
                 }}
                 className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm">
                 <option value="">Default</option>
@@ -111,37 +126,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   );
 
   return (
-    <div className="flex h-screen w-screen bg-slate-50 font-sans antialiased text-slate-900 overflow-hidden">
-      {/* SIDEBAR */}
-      <aside className="w-20 md:w-24 bg-white border-r border-slate-200 flex flex-col items-center py-8 gap-10 flex-shrink-0">
-        <div className="w-10 h-10 border-4 border-[#159e8a] rounded-lg flex items-center justify-center font-black text-xl text-[#159e8a]">A</div>
-        <div className="flex flex-col gap-8 flex-1">
-          {/* Dashboard Icon - Active on this page */}
-          <button className="p-3 bg-teal-50 text-[#159e8a] rounded-xl border-r-4 border-[#159e8a]">
-            <FileText size={24} />
-          </button>
-          {/* Profile Icon - Navigates to Home/Profile */}
-          <button 
-            onClick={onNavigateHome} 
-            className="p-3 text-slate-400 hover:text-[#159e8a] transition-colors"
-          >
-            <Users2 size={24} />
-          </button>
-          <button 
-      onClick={onNavigateHome} // This triggers setCurrentView('settings') in App.js
-      className="p-3 text-slate-400 hover:text-[#159e8a] transition-colors"
-    >
-      <Settings2 size={24} /> 
-    </button>
-  </div>
-        <button onClick={onLogout} className="p-3 text-slate-300 hover:text-red-500 transition-colors mb-4">
-          <LogOut size={24} />
-        </button>
-      </aside>
-      
-
+    <div className="h-full w-full bg-slate-50 font-sans antialiased text-slate-900 overflow-hidden flex flex-col">
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 h-full overflow-y-auto p-6 md:p-10">
+      <main className="flex-1 overflow-y-auto p-6 md:p-10">
         <header className="mb-8 flex justify-between items-end w-full">
           <div>
             <h1 className="text-3xl text-[#159e8a] font-bold tracking-tight">AUTO-FLOW</h1>
@@ -150,77 +137,76 @@ const Dashboard: React.FC<DashboardProps> = ({
           <div className="text-right text-xs text-slate-400">
             Welcome, <span className="text-slate-700 font-bold">{user.name}</span>
           </div>
-                     {/* STATS SUMMARY CARDS */}
+          {/* STATS SUMMARY CARDS */}
           <div className="flex gap-4 w-full md:w-auto">
             <div className="bg-white p-4 px-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 flex-1 md:flex-initial">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"><Files size={20}/></div>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"><Files size={20} /></div>
               <div><p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</p><p className="text-xl font-black text-slate-800 leading-none">{Stats.total}</p></div>
             </div>
             <div className="bg-white p-4 px-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 flex-1 md:flex-initial">
-              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center"><BarChart3 size={20}/></div>
+              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center"><BarChart3 size={20} /></div>
               <div><p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Avg Score</p><p className="text-xl font-black text-slate-800 leading-none">{Stats.avgScore}%</p></div>
             </div>
           </div>
-        
+
         </header>
 
 
         {/* UPLOAD & REQUIREMENTS SECTION */}
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
-            <div className="flex gap-2 mb-8 p-1 bg-slate-100 w-fit rounded-xl border border-slate-200">
-              {(['default', 'custom'] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setFormatType(type)}
-                  className={`px-8 py-2.5 rounded-lg text-xs font-black tracking-widest transition-all ${
-                    formatType === type ? 'bg-white text-[#159e8a] shadow-md' : 'text-slate-500 hover:text-slate-700'
+          <div className="flex gap-2 mb-8 p-1 bg-slate-100 w-fit rounded-xl border border-slate-200">
+            {(['default', 'custom'] as const).map((type) => (
+              <button
+                key={type}
+                onClick={() => setFormatType(type)}
+                className={`px-8 py-2.5 rounded-lg text-xs font-black tracking-widest transition-all ${formatType === type ? 'bg-white text-[#159e8a] shadow-md' : 'text-slate-500 hover:text-slate-700'
                   }`}
-                >
-                  {type.toUpperCase()} 
-                </button>
-              ))}
-            </div>
+              >
+                {type.toUpperCase()}
+              </button>
+            ))}
+          </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
-              <div className="space-y-6">
-                <FileUpload onFileSelect={(file) => onFileSelect(file, formatType, templateFile || undefined, formatRequirements)} isProcessing={isProcessing} />
-                {formatType === 'custom' && (
-                  <div className="p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                    <h4 className="font-bold text-slate-700 text-xs mb-4 uppercase tracking-wider flex items-center gap-2">
-                        <Upload size={14}/> Optional: Template
-                    </h4>
-                    <input type="file" onChange={(e) => setTemplateFile(e.target.files?.[0] || null)} className="text-xs cursor-pointer w-full" />
-                  </div>
-                )}
-              </div>
-
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
+            <div className="space-y-6">
+              <FileUpload onFileSelect={(file) => onFileSelect(file, formatType, templateFile || undefined, formatRequirements)} isProcessing={isProcessing} />
               {formatType === 'custom' && (
-                <div className="space-y-3">
-                  <h3 className="font-bold text-slate-800 text-sm">Formatting Requirements</h3>
-                  <div className="max-h-[400px] overflow-y-auto pr-2">
-                    {renderSection('margins', 'Page Layout', formatFields.margins)}
-                    {renderSection('typography', 'Typography', formatFields.typography)}
-                    {renderSection('spacing', 'Spacing', formatFields.spacing)}
-                  </div>
+                <div className="p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                  <h4 className="font-bold text-slate-700 text-xs mb-4 uppercase tracking-wider flex items-center gap-2">
+                    <Upload size={14} /> Optional: Template
+                  </h4>
+                  <input type="file" onChange={(e) => setTemplateFile(e.target.files?.[0] || null)} className="text-xs cursor-pointer w-full" />
                 </div>
               )}
             </div>
+
+            {formatType === 'custom' && (
+              <div className="space-y-3">
+                <h3 className="font-bold text-slate-800 text-sm">Formatting Requirements</h3>
+                <div className="max-h-[400px] overflow-y-auto pr-2">
+                  {renderSection('margins', 'Page Layout', formatFields.margins)}
+                  {renderSection('typography', 'Typography', formatFields.typography)}
+                  {renderSection('spacing', 'Spacing', formatFields.spacing)}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-       
 
 
-        {/* RECENT ANALYSES */}
+
+        {/* RECENT ANALYSiS */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-            <h3 className="font-bold text-slate-800">Recent Analyses</h3>
+            <h3 className="font-bold text-slate-800">Recent Analysis</h3>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-              <input 
-                type="text" 
-                placeholder="Search..." 
+              <input
+                type="text"
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-4 py-1.5 bg-slate-100 border-none rounded-full text-xs outline-none w-48" 
+                className="pl-9 pr-4 py-1.5 bg-slate-100 border-none rounded-full text-xs outline-none w-48"
               />
             </div>
           </div>
@@ -246,7 +232,37 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </td>
                   <td className="px-8 py-5 text-sm font-bold text-slate-600">{doc.totalScore}%</td>
                   <td className="px-8 py-5 text-right opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => onDeleteDocument(doc.fileName, doc.uploadDate)} className="text-slate-400 hover:text-red-500"><Trash2 size={18}/></button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => {
+                          // Helper function to view analysis 
+                          // Propagate up to App via onFileSelect or new prop?
+                          // Re-using onFileSelect with null file but valid analysis logic requires refactor.
+                          // Better to ask App to set current analysis.
+                          // But Dashboard doesn't have onSelectAnalysis prop.
+                          // I will add onSelectAnalysis prop to Dashboard or re-use existing flow.
+                          // For now, let's assume we can pass it up.
+                          // Actually, App.tsx needs to handle this "View" action.
+                          // Let's add onViewAnalysis prop to Dashboard.
+                          if (onViewAnalysis) onViewAnalysis(doc);
+                        }}
+                        className="text-slate-400 hover:text-blue-500"
+                        title="View Details"
+                      >
+                        <Files size={18} />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedDocForUpload(doc);
+                          setIsWorkspaceModalOpen(true);
+                        }}
+                        className="text-slate-400 hover:text-[#159e8a]"
+                        title="Add to Workspace"
+                      >
+                        <FolderInput size={18} />
+                      </button>
+                      <button onClick={() => onDeleteDocument(doc.fileName, doc.uploadDate)} className="text-slate-400 hover:text-red-500"><Trash2 size={18} /></button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -254,6 +270,65 @@ const Dashboard: React.FC<DashboardProps> = ({
           </table>
         </div>
       </main>
+
+      {/* WORKSPACE SELECTION MODAL */}
+      {isWorkspaceModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Add to Workspace</h3>
+            <p className="text-slate-500 text-sm mb-6">Select a workspace to add <span className="font-bold text-slate-700">{selectedDocForUpload?.fileName}</span> to.</p>
+
+            <div className="space-y-3 max-h-60 overflow-y-auto mb-6 pr-2">
+              {workspaces.length > 0 ? (
+                workspaces.map((ws, index) => {
+                  // Robust ID handling
+                  const workspaceId = ws.id || ws._id;
+                  if (!workspaceId) return null; // Skip invalid workspaces
+
+                  return (
+                    <button
+                      key={workspaceId || index} // Fallback key just in case
+                      onClick={() => {
+                        if (selectedDocForUpload && onAddToWorkspace) {
+                          onAddToWorkspace(selectedDocForUpload, workspaceId);
+                          setIsWorkspaceModalOpen(false);
+                        }
+                      }}
+                      className="w-full p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:bg-teal-50 hover:border-[#159e8a33] transition-all text-left flex items-center gap-3 group"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400 group-hover:text-[#159e8a] shadow-sm">
+                        <Users2 size={20} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-slate-700 group-hover:text-[#159e8a]">{ws.name}</h4>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">{ws.members?.length || 1} Member{ws.members?.length !== 1 && 's'}</p>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <p className="text-slate-400 text-sm font-medium">No workspaces found.</p>
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => setIsWorkspaceModalOpen(false)}
+              className="w-full py-3 bg-slate-100 text-slate-500 font-bold rounded-xl hover:bg-slate-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ANALYSIS SUMMARY MODAL */}
+      <AnalysisSummaryModal
+        isOpen={!!viewAnalysis}
+        onClose={() => setViewAnalysis(null)}
+        analysis={viewAnalysis}
+      />
     </div>
   );
 };

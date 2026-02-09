@@ -159,9 +159,10 @@ export const analysisApi = {
     formatRequirements?: string
   ): Promise<any> => {
     const formData = new FormData();
-    formData.append('document', file);
+    // CRITICAL: Append text fields BEFORE the file for Multer to process them correctly
     formData.append('userId', userId);
     formData.append('fileName', file.name);
+    formData.append('document', file);
 
     // Add format customization parameters
     if (formatType) {
@@ -206,7 +207,7 @@ export const analysisApi = {
 
     // Add upload progress tracking
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout
+    const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minute timeout
 
     try {
       console.log('🔧 Uploading file:', {
@@ -503,3 +504,5 @@ export const documentApi = {
     body: JSON.stringify({ documentIds }),
   }),
 };
+
+export { workspaceApi } from './workspaceApi';

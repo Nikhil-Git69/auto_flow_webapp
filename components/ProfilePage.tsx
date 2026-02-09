@@ -1,15 +1,15 @@
 import React from 'react';
-import { 
-  FileText, 
-  LogOut, 
-  Award, 
-  Zap, 
-  Clock, 
-  ShieldCheck, 
-  ChevronRight, 
-  BrainCircuit, 
-  User2, 
-  Home, 
+import {
+  FileText,
+  LogOut,
+  Award,
+  Zap,
+  Clock,
+  ShieldCheck,
+  ChevronRight,
+  BrainCircuit,
+  User2,
+  Home,
   Settings2,
   Settings
 } from 'lucide-react';
@@ -22,38 +22,19 @@ interface ProfilePageProps {
 }
 
 
-const ProfilePage: React.FC<ProfilePageProps> = ({ 
-  user, 
-  onLogout, 
-  onBackToDashboard, 
-  onNavigateSettings 
+const ProfilePage: React.FC<ProfilePageProps> = ({
+  user,
+  onLogout,
+  onBackToDashboard,
+  onNavigateSettings
 }) => {
   return (
-    <div 
-      className="flex min-h-screen font-sans antialiased bg-cover bg-center bg-no-repeat bg-fixed"
-      style={{ 
-        backgroundImage: `linear-gradient(rgba(252, 253, 253, 0.8), rgba(252, 253, 253, 0.8))` 
+    <div
+      className="h-full font-sans antialiased bg-cover bg-center bg-no-repeat bg-fixed w-full overflow-y-auto"
+      style={{
+        backgroundImage: `linear-gradient(rgba(252, 253, 253, 0.8), rgba(252, 253, 253, 0.8))`
       }}
     >
-      {/* SIDEBAR */}
-      <aside className="w-20 md:w-24 bg-white/90 backdrop-blur-md border-r border-slate-200/50 flex flex-col items-center py-8 gap-10 sticky top-0 h-screen z-10">
-        <div className="w-10 h-10 border-4 border-[#159e8a] rounded-lg flex items-center justify-center font-black text-xl text-[#159e8a]">A</div>
-        <div className="flex flex-col gap-8 flex-1">
-          <button 
-            onClick={onBackToDashboard} 
-            className="p-3 text-slate-400 hover:text-[#159e8a] transition-colors"
-          >
-            <FileText size={24} />
-          </button>
-          <button className="p-3 bg-[#e8f6f4] text-[#159e8a] rounded-xl border-r-4 border-[#159e8a]">
-            <User2 size={24} />
-          </button>
-        </div>
-        <button onClick={onLogout} className="p-3 text-slate-300 hover:text-red-500 mb-4 transition-colors">
-          <LogOut size={24} />
-        </button>
-      </aside>
-
       {/* MAIN CONTENT */}
       <main className="flex-1 max-w-6xl mx-auto p-8 md:p-12">
         {/* HEADER */}
@@ -73,12 +54,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
             </div>
           </div>
 
-          <button 
-            onClick={onNavigateSettings} 
-            className="px-6 py-2.5 bg-[#159e8a] text-white rounded-xl font-semibold text-sm hover:opacity-90 flex items-center gap-2 transition-transform active:scale-95 shadow-md"
-          >
-            <Settings size={16} />
-          </button>
         </header>
 
         {/* STATS */}
@@ -90,27 +65,27 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-             <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-white/50 p-6 shadow-sm">
-                <h2 className="font-bold text-slate-800 mb-4">Account Configuration</h2>
-                <div className="space-y-4">
-                  <ConfigItem label="Email Address" value={user.email || "user@example.com"} />
-                  <ConfigItem label="Analysis Preference" value="Deep Academic Feedback" />
-                </div>
-             </div>
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-white/50 p-6 shadow-sm">
+              <h2 className="font-bold text-slate-800 mb-4">Account Configuration</h2>
+              <div className="space-y-4">
+                <ConfigItem label="Email Address" value={user.email || "user@example.com"} />
+                <ConfigItem label="Analysis Preference" value="Deep Academic Feedback" />
+              </div>
+            </div>
 
-             <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-white/50 p-6 shadow-sm">
-                <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Clock size={18}/> Recent Activity</h2>
-                <ActivityItem file="Thesis_Final_Draft.pdf" date="2 hours ago" />
-                <ActivityItem file="Lab_Report_V2.docx" date="Yesterday" />
-             </div>
+            <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-white/50 p-6 shadow-sm">
+              <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2"><Clock size={18} /> Recent Activity</h2>
+              <ActivityItem file="Thesis_Final_Draft.pdf" date="2 hours ago" />
+              <ActivityItem file="Lab_Report_V2.docx" date="Yesterday" />
+            </div>
           </div>
-          
+
           <div className="bg-slate-900/90 backdrop-blur-md rounded-2xl p-6 text-white h-fit shadow-xl">
             <h3 className="font-bold text-xl mb-4">Pro Perks</h3>
             <ul className="space-y-3 mb-6 text-sm text-slate-300">
-              <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-[#159e8a]"/> Priority AI Processing</li>
-              <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-[#159e8a]"/> Unlimited File Size</li>
-              <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-[#159e8a]"/> Academic Plagiarism Check</li>
+              <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-[#159e8a]" /> Priority AI Processing</li>
+              <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-[#159e8a]" /> Unlimited File Size</li>
+              <li className="flex items-center gap-2"><ShieldCheck size={16} className="text-[#159e8a]" /> Academic Plagiarism Check</li>
             </ul>
             <div className="bg-white/5 p-4 rounded-xl border border-white/10">
               <p className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">Monthly Usage</p>
@@ -148,7 +123,7 @@ const ConfigItem = ({ label, value }: any) => (
 const ActivityItem = ({ file, date }: any) => (
   <div className="flex items-center justify-between p-3 rounded-xl hover:bg-white/50 transition-colors">
     <div className="flex items-center gap-3">
-      <div className="p-2 bg-slate-100/80 rounded-lg text-slate-500"><FileText size={16}/></div>
+      <div className="p-2 bg-slate-100/80 rounded-lg text-slate-500"><FileText size={16} /></div>
       <div>
         <p className="text-sm font-semibold text-slate-700">{file}</p>
         <p className="text-[10px] text-slate-400 uppercase font-medium">{date}</p>

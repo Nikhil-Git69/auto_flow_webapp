@@ -209,6 +209,19 @@ export interface User {
   };
 }
 
+export interface Workspace {
+  id: string;
+  _id?: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+  ownerId: string;
+  members?: string[]; // User IDs
+  documents?: DocumentAnalysis[]; // Collaborative uploads
+  accessCode: string; // Unique 6-char code
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   message: string;

@@ -8,7 +8,7 @@ import { Editor } from '@tinymce/tinymce-react';
 import {
   ArrowLeft, CheckCircle, Download, FileText, Filter,
   Loader2, FileEdit, FileDown, Info, Ruler, AlignLeft,
-  Type, Space, Layout, AlertTriangle, Check, X, Eye
+  Type, Space, Layout, AlertTriangle, Check, X, Eye, Sparkles
 } from 'lucide-react';
 import { exportCorrectedDocument as runExportService } from '../services/exportService';
 import { analysisApi } from '../services/api';
@@ -34,7 +34,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
   const [filter, setFilter] = useState<'ALL' | 'CRITICAL' | 'TOPOLOGY' | 'SPACING' | 'TYPOGRAPHY' | 'GRAMMAR' | 'CUSTOM_FORMAT'>('ALL');
   const [isExporting, setIsExporting] = useState(false);
   const [editedContent, setEditedContent] = useState<string>(file.textContent || '');
-  const [exportFormat, setExportFormat] = useState<'original' | 'pdf' | 'html'>('original');
+  const [exportFormat, setExportFormat] = useState<'original' | 'pdf' | 'html' | 'docx'>('original'); // Added docx
   const [showFormatInfo, setShowFormatInfo] = useState(false);
   const [showTopologyMetrics, setShowTopologyMetrics] = useState(true);
   const [isChatProcessing, setIsChatProcessing] = useState(false);
@@ -45,6 +45,8 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
   // Derived state
   const isWord = isWordFile(file.mimeType);
   const isPDF = isPDFFile(file.mimeType);
+
+
 
   // View mode state (Preview vs Edit)
   const [viewMode, setViewMode] = useState<'preview' | 'edit'>(isWord ? 'edit' : 'preview');
@@ -252,7 +254,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
     }
   };
 
-  const handleExport = async (format?: 'original' | 'pdf' | 'html') => {
+  const handleExport = async (format?: 'original' | 'pdf' | 'html' | 'docx') => {
     const fixedCount = issues.filter(i => i.isFixed).length;
     const isWord = isWordFile(file.mimeType);
     // Allow export if we are in edit mode or if fixes are applied
@@ -269,7 +271,14 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
       // If we are in "Preview Mode" (PDF Viewer), we want to export the PDF with highlights (Server-side)
       // For Word docs, we usually want text export if edited.
 
-      const shouldUseClientExport = viewMode === 'edit' || !analysis.analysisId;
+      // If we are exporting to DOCX, PDF, or HTML, we generally want the client-side generator 
+      // which uses the current edited content.
+      const shouldUseClientExport =
+        viewMode === 'edit' ||
+        !analysis.analysisId ||
+        format === 'docx' ||
+        format === 'pdf' ||
+        format === 'html';
 
       if (!shouldUseClientExport && analysis.analysisId) {
         const fixedIssueIds = issues.filter(i => i.isFixed).map(i => i.id);
@@ -289,7 +298,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
           editedContent,
           file.mimeType,
           analysis.analysisId,
-          exportFormat // Pass the selected format
+          format || exportFormat // Use the passed format (like 'docx' from button) or the dropdown state
         );
       }
     } catch (error: any) {
@@ -360,48 +369,49 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
 
       try {
         // Fetch the PDF data
-        const pdfBytes = await fetch(file.previewUrl).then(res => res.arrayBuffer());
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-        const pages = pdfDoc.getPages();
+        // const pdfBytes = await fetch(file.previewUrl).then(res => res.arrayBuffer());
+        // const pdfDoc = await PDFDocument.load(pdfBytes);
+        // const pages = pdfDoc.getPages();
 
         // Filter active issues that have position data
         // IMPROVEMENT: Filter out suspiciously large boxes (e.g. >90% width AND height) which are usually hallucinations
-        const issuesToHighlight = issues.filter(i =>
-          !i.isFixed && i.position && (i.position.width > 0 || i.position.height > 0) &&
-          !(i.position.width > 95 && i.position.height > 95) // Ignore full-page boxes
-        );
+        // const issuesToHighlight = issues.filter(i =>
+        //   !i.isFixed && i.position && (i.position.width > 0 || i.position.height > 0) &&
+        //   !(i.position.width > 95 && i.position.height > 95) // Ignore full-page boxes
+        // );
 
-        issuesToHighlight.forEach(issue => {
-          if (!issue.position) return;
-          const pageIndex = (issue.pageNumber || 1) - 1;
-          if (pageIndex < 0 || pageIndex >= pages.length) return;
+        // issuesToHighlight.forEach(issue => {
+        //   if (!issue.position) return;
+        //   const pageIndex = (issue.pageNumber || 1) - 1;
+        //   if (pageIndex < 0 || pageIndex >= pages.length) return;
 
-          const page = pages[pageIndex];
-          const { width, height } = page.getSize();
-          const { top, left, width: w, height: h } = issue.position;
+        //   const page = pages[pageIndex];
+        //   const { width, height } = page.getSize();
+        //   const { top, left, width: w, height: h } = issue.position;
 
-          // Determine color based on severity or type
-          let color = rgb(1, 1, 0); // Yellow default
-          if (issue.severity === 'Critical') color = rgb(1, 0, 0); // Red
-          else if (issue.type === 'Margin') color = rgb(1, 0.5, 0); // Orange
-          else if (issue.type === 'Typography') color = rgb(0.5, 0, 0.5); // Purple
+        //   // Determine color based on severity or type
+        //   let color = rgb(1, 1, 0); // Yellow default
+        //   if (issue.severity === 'Critical') color = rgb(1, 0, 0); // Red
+        //   else if (issue.type === 'Margin') color = rgb(1, 0.5, 0); // Orange
+        //   else if (issue.type === 'Typography') color = rgb(0.5, 0, 0.5); // Purple
 
-          // Draw highlight rectangle (PDF coordinates are bottom-left origin usually, but pdf-lib handles it)
-          // Note: HTML/CSS top is from top, PDF y is from bottom.
-          page.drawRectangle({
-            x: (left / 100) * width,
-            y: height - ((top / 100) * height) - ((h / 100) * height),
-            width: (w / 100) * width,
-            height: (h / 100) * height,
-            color: color,
-            opacity: 0.2, // Faint fill
-            borderColor: color, // Strong outline
-            borderWidth: 2, // Visible border
-          });
-        });
+        //   // Draw highlight rectangle (PDF coordinates are bottom-left origin usually, but pdf-lib handles it)
+        //   // Note: HTML/CSS top is from top, PDF y is from bottom.
+        //   page.drawRectangle({
+        //     x: (left / 100) * width,
+        //     y: height - ((top / 100) * height) - ((h / 100) * height),
+        //     width: (w / 100) * width,
+        //     height: (h / 100) * height,
+        //     color: color,
+        //     opacity: 0.2, // Faint fill
+        //     borderColor: color, // Strong outline
+        //     borderWidth: 2, // Visible border
+        //   });
+        // });
 
-        const base64Pdf = await pdfDoc.saveAsBase64({ dataUri: true });
-        setHighlightedPdfUrl(base64Pdf);
+        // const base64Pdf = await pdfDoc.saveAsBase64({ dataUri: true });
+        // setHighlightedPdfUrl(base64Pdf);
+        setHighlightedPdfUrl(null); // Force no highlights
       } catch (error) {
         console.error("Error highlighting PDF:", error);
       }
@@ -594,10 +604,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
                   <FileText className="w-5 h-5 text-indigo-600" />}
               {file.file.name}
 
-              {/* Gemini model badge */}
-              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">
-                {geminiModel}
-              </span>
+
             </h1>
             <div className="flex items-center gap-3">
               <p className="text-xs text-slate-500 font-medium">
@@ -608,67 +615,85 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
                   Editable Word Document
                 </span>
               )}
-              {/* TOGGLE: Original vs Corrected - NEW */}
-              <div className="flex bg-slate-100 rounded-lg p-1 mr-4">
+
+              {/* SLIDING TOGGLE: Original vs Corrected */}
+              <div className="relative flex bg-slate-100 rounded-lg p-1 ml-4 border border-slate-200 shadow-inner w-64">
+                {/* Background Sliding Pill */}
+                <div
+                  className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-[#159e8a] rounded-md shadow-sm transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${viewMode === 'edit'
+                    ? 'translate-x-[100%]'
+                    : 'translate-x-0'
+                    }`}
+                />
+
+                {/* Original Button */}
                 <button
                   onClick={() => {
-                    // Switch to Original
-                    if (isWord) {
-                      setEditedContent(file.textContent || '');
-                    } else if (isPDF) {
-                      setHighlightedPdfUrl(null); // Shows original PDF via fallback in render
+                    if (isWord || viewMode === 'edit') {
+                      // Switch to Original view
+                      if (isWord) {
+                        // Reset content to original
+                        setEditedContent(file.textContent || '');
+                      } else {
+                        setHighlightedPdfUrl(null);
+                      }
+                      setViewMode('preview');
                     }
-                    setViewMode('preview'); // Just a visual state naming, can reuse
                   }}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${(isWord && editedContent === file.textContent) || (isPDF && !highlightedPdfUrl)
-                    ? 'bg-white shadow text-slate-700'
-                    : 'text-slate-500 hover:text-slate-700'
+                  className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-300 ${viewMode !== 'edit'
+                    ? 'text-white'
+                    : 'text-slate-600 hover:text-slate-900'
                     }`}
                 >
                   Original
                 </button>
+
+                {/* Corrected Button */}
                 <button
                   onClick={() => {
-                    // Switch to Corrected
-                    // Switch to Corrected
-                    if (analysis.correctedContent) {
-                      setEditedContent(analysis.correctedContent);
+                    if (viewMode !== 'edit') {
+                      // Switch to Edit/Corrected view
+                      if (analysis.correctedContent) {
+                        setEditedContent(analysis.correctedContent);
+                      }
+                      if (isPDF && analysis.correctedPdfBase64) {
+                        setHighlightedPdfUrl(`data:application/pdf;base64,${analysis.correctedPdfBase64}`);
+                      }
+                      setViewMode('edit');
                     }
-                    if (isPDF && analysis.correctedPdfBase64) {
-                      setHighlightedPdfUrl(`data:application/pdf;base64,${analysis.correctedPdfBase64}`);
-                    }
-                    setViewMode('edit');
                   }}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${(editedContent !== file.textContent) || (isPDF && highlightedPdfUrl)
-                    ? 'bg-indigo-600 shadow text-white'
-                    : 'text-slate-500 hover:text-slate-700'
+                  className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-300 flex items-center justify-center gap-1.5 ${viewMode === 'edit'
+                    ? 'text-white'
+                    : 'text-slate-600 hover:text-slate-900'
                     }`}
                 >
-                  ✨ AI Corrected
+                  {viewMode === 'edit' ? (
+                    <Sparkles className="w-3 h-3 text-yellow-300" />
+                  ) : (
+                    <Sparkles className="w-3 h-3 text-[#159e8a]" />
+                  )}
+                  AI Corrected
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-500 font-medium">{fixedCount}/{issues.length} Fixed</span>
+        <div className="flex gap-3 items-center">
+          <button
+            onClick={() => handleExport('docx')}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 bg-[#159e8a] text-white rounded-lg hover:bg-[#128a78] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileEdit className="w-4 h-4" />
+            )}
+            Open in Word
+          </button>
 
-          {/* Word/PDF Export options */}
-          {(isWord || (isPDF && viewMode === 'edit')) && (
-            <div className="flex items-center gap-2 border-r border-slate-200 pr-3">
-              <span className="text-xs text-slate-500">Export as:</span>
-              <select
-                className="text-xs border border-slate-200 rounded px-2 py-1 outline-none bg-white"
-                value={exportFormat}
-                onChange={(e) => setExportFormat(e.target.value as any)}
-              >
-                <option value="original">Original Format</option>
-                <option value="html">HTML</option>
-                <option value="pdf">PDF</option>
-              </select>
-            </div>
-          )}
+
 
           <button
             onClick={handleApplyAll}
@@ -676,33 +701,26 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
           >
             {isWord ? "Apply All AI Fixes" : "Auto-Fix All"}
           </button>
-          <button
-            onClick={() => handleExport(exportFormat)}
-            disabled={isExporting || (!isWord && viewMode !== 'edit' && fixedCount === 0)}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-md"
-          >
-            {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            {isWord || (isPDF && viewMode === 'edit') ? "Export Document" : "Export Corrected PDF"}
-          </button>
+
         </div>
       </header>
 
       {/* Main Content - 3 Column Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      < div className="flex flex-1 overflow-hidden" >
         {/* Left Column: AI Chat Sidebar */}
-        <div className="flex-shrink-0 z-10 h-full">
+        < div className="flex-shrink-0 z-10 h-full" >
           <AIChatSidebar
             onSendMessage={handleAIChatMessage}
             onUploadTemplate={handleTemplateUpload}
             isProcessing={isChatProcessing}
           />
-        </div>
+        </div >
 
         {/* Center Column: Document Editor */}
-        <div className="flex-1 bg-slate-100 p-6 overflow-hidden flex-col items-center flex">
+        < div className="flex-1 bg-slate-100 p-6 overflow-hidden flex-col items-center flex" >
           {/* Toolbar Area (if external) or just spacing */}
 
-          <div className="w-full max-w-4xl bg-white shadow-xl h-full flex flex-col rounded-lg overflow-hidden border border-slate-200">
+          < div className="w-full max-w-4xl bg-white shadow-xl h-full flex flex-col rounded-lg overflow-hidden border border-slate-200" >
             {viewMode === 'edit' ? (
               <Editor
                 apiKey="1z3mdsuht8wx9ofpy5jda5zlj725bnfa3n4vnzh6tdaa7dc6"
@@ -728,28 +746,27 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
                 onEditorChange={handleEditorChange}
               />
             ) : (
-              <div className="flex-1 overflow-auto p-8">
+              <div className="flex-1 overflow-auto p-8 scroll-smooth overscroll-contain">
                 {file.mimeType.startsWith('image/') ? (
                   <img src={file.previewUrl} alt="Preview" className="w-full h-auto" />
                 ) : (
                   <object
-                    data={highlightedPdfUrl || file.previewUrl}
+                    data={file.previewUrl} // Always show original for now
                     type="application/pdf"
                     className="w-full h-full min-h-[800px]"
-                    key={highlightedPdfUrl ? 'highlighted' : 'original'} // Force re-render on change
                   >
-                    <iframe src={highlightedPdfUrl || file.previewUrl} className="w-full h-full" title="pdf-viewer" />
+                    <iframe src={file.previewUrl} className="w-full h-full" title="pdf-viewer" />
                   </object>
                 )}
               </div>
             )}
-          </div>
-        </div>
+          </div >
+        </div >
 
         {/* Right Column: Existing Analysis Sidebar */}
-        <div className="w-[480px] bg-white border-l border-slate-200 flex flex-col h-full shadow-xl flex-shrink-0 z-10">
+        < div className="w-[480px] bg-white border-l border-slate-200 flex flex-col h-full shadow-xl flex-shrink-0 z-10" >
           {/* Scrollable top section */}
-          <div className="border-b border-slate-100 overflow-hidden flex-shrink-0" style={{ maxHeight: '40%' }}>
+          < div className="border-b border-slate-100 overflow-hidden flex-shrink-0" style={{ maxHeight: '40%' }}>
             <div className="h-full overflow-y-auto p-3">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xs uppercase tracking-widest font-bold text-slate-400">
@@ -807,10 +824,10 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
                 </div>
               </div>
             </div>
-          </div>
+          </div >
 
           {/* Detailed Issues */}
-          <div className="flex-1 overflow-hidden flex flex-col">
+          < div className="flex-1 overflow-hidden flex flex-col" >
             <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center bg-white">
               <h2 className="font-bold text-slate-700 flex items-center gap-2">
                 <Filter className="w-4 h-4 text-slate-400" />
@@ -846,10 +863,10 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+          </div >
+        </div >
+      </div >
+    </div >
   );
 };
 

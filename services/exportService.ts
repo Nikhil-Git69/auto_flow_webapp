@@ -452,6 +452,272 @@
 // };
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { Issue, isWordFile, isPDFFile } from '../types';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+
+// Helper to generate Word Docx from HTML content (Client-side)
+// @ts-ignore
+import { asBlob } from 'html-docx-js-typescript';
+
+const exportHtmlAsDocx = async (
+  content: string,
+  fileName: string
+): Promise<void> => {
+  try {
+    if (!content) {
+      alert("No content to export.");
+      return;
+    }
+
+    // Wrap content in a full HTML structure with styles for Word
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; line-height: 1.5; color: #000000; }
+            h1, h2, h3, h4, h5, h6 { color: #2E74B5; margin-top: 12pt; margin-bottom: 6pt; font-weight: bold; }
+            h1 { font-size: 24pt; border-bottom: 2px solid #2E74B5; padding-bottom: 6pt; }
+            h2 { font-size: 18pt; margin-top: 18pt; }
+            h3 { font-size: 14pt; }
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            color: #000000;
+          }
+          h1, h2, h3, h4, h5, h6 {
+            font-family: 'Times New Roman', Times, serif;
+            font-weight: bold;
+            color: #000000;
+            margin-top: 24pt;
+            margin-bottom: 12pt;
+          }
+          h1 { font-size: 24pt; text-align: center; margin-bottom: 24pt; }
+          h2 { font-size: 18pt; border-bottom: 1px solid #000; padding-bottom: 6pt; text-align: left; }
+          h3 { font-size: 14pt; text-align: left; }
+          p { margin-bottom: 12pt; text-align: left; line-height: 1.5; }
+          
+          /* Titles often come as strong/bold paragraphs - ensure they don't justify */
+          strong, b { font-weight: bold; }
+          
+          /* Table Styling for Word */
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12pt;
+          }
+          th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+            text-align: left;
+            padding: 8pt;
+            border: 1px solid #000;
+          }
+          td {
+            padding: 8pt;
+            border: 1px solid #000;
+            vertical-align: top;
+          }
+          
+          /* List Styling */
+          ul, ol { margin-bottom: 12pt; }
+          li { margin-bottom: 6pt; }
+          
+          /* Links */
+          a { color: #0563C1; text-decoration: underline; }
+        </style>
+      </head>
+      <body>
+        ${content}
+      </body>
+      </html>
+    `;
+
+    // Convert HTML to Docx Blob
+    // 'asBlob' returns a Blob (application/vnd.openxmlformats-officedocument.wordprocessingml.document)
+    const blob = await asBlob(htmlContent, {
+      orientation: 'portrait',
+      margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 } // 1 inch margins
+    });
+
+    if (!blob) {
+      throw new Error("Failed to generate Word document blob.");
+    }
+
+    // Trigger download
+    const url = URL.createObjectURL(blob as Blob);
+    const link = document.createElement('a');
+    link.href = url;
+
+    // Use a clean filename with .docx extension
+    const cleanFileName = fileName.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9-_ ]/g, "");
+    link.download = `Corrected_${cleanFileName}.docx`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error("HTML to Docx Export Error:", error);
+    alert("Word document generation failed. Please try 'Original Format' or 'HTML' export.");
+    throw error;
+  }
+};
+
+// Helper to generate PDF from HTML content (Client-side)
+const exportHtmlAsPdf = async (
+  content: string,
+  fileName: string
+): Promise<void> => {
+  try {
+    if (!content) {
+      alert("No content to export.");
+      return;
+    }
+
+    // Create a temporary container for rendering
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '0px';
+    container.style.top = '0px';
+    container.style.zIndex = '-9999';
+    // Use a width suitable for A4 content (approx 700px gives good margins)
+    container.style.width = '700px';
+    container.style.backgroundColor = 'white';
+    container.style.padding = '40px';
+
+    // Inject styles for better formatting
+    const style = document.createElement('style');
+    style.innerHTML = `
+      body { 
+        font-family: Arial, sans-serif; 
+        color: #000; 
+        line-height: 1.6; 
+      }
+      h1, h2, h3, h4, h5, h6 { 
+        color: #2E74B5; 
+        margin-top: 24px; 
+        margin-bottom: 12px; 
+        font-weight: bold; 
+        page-break-after: avoid; 
+        letter-spacing: 0.5px;
+      }
+      h1 { font-size: 24pt; border-bottom: 2px solid #2E74B5; padding-bottom: 8px; }
+      h2 { font-size: 18pt; margin-top: 20px; }
+      h3 { font-size: 14pt; }
+      p { 
+        margin-bottom: 12px; 
+        font-size: 11pt; 
+        text-align: left; 
+        letter-spacing: 0.2px;
+      }
+      
+      /* Table Styling */
+      table { 
+        width: 100%; 
+        border-collapse: collapse; 
+        margin: 20px 0; 
+        font-size: 10pt; 
+        page-break-inside: avoid;
+        table-layout: fixed;
+      }
+      th { 
+        background-color: #f2f2f2; 
+        color: #333;
+        font-weight: bold; 
+        text-align: left; 
+        padding: 8px 12px; 
+        border: 1px solid #ddd; 
+      }
+      td { 
+        padding: 8px 12px; 
+        border: 1px solid #ddd; 
+        vertical-align: top;
+        word-wrap: break-word;
+      }
+      tr:nth-child(even) { background-color: #fafafa; }
+      
+      img { max-width: 100%; height: auto; display: block; margin: 10px auto; }
+      
+      /* Ensure text doesn't overflow horizontally */
+      * { max-width: 100%; box-sizing: border-box; }
+
+      /* Fix potential issues */
+      div, span, p { display: block; position: static; width: auto; height: auto; } 
+    `;
+    container.appendChild(style);
+
+    const contentWrapper = document.createElement('div');
+    contentWrapper.innerHTML = content;
+    container.appendChild(contentWrapper);
+
+    document.body.appendChild(container);
+
+    // Wait for images
+    const images = container.querySelectorAll('img');
+    await Promise.all(Array.from(images).map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise((resolve) => {
+        img.onload = resolve;
+        img.onerror = resolve;
+      });
+    }));
+
+    // Delay for rendering
+    await new Promise(r => setTimeout(r, 800));
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'a4'
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    // Use narrower content width to enforce margins
+    const margin = 30;
+    const contentWidth = pdfWidth - (margin * 2);
+
+    await new Promise<void>((resolve, reject) => {
+      pdf.html(container, {
+        callback: (doc) => {
+          try {
+            const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
+            doc.save(`Corrected_${fileName.replace(/\.[^/.]+$/, '')}_${timestamp}.pdf`);
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        },
+        x: margin,
+        y: margin,
+        width: contentWidth,
+        windowWidth: 700,
+        autoPaging: 'text',
+        html2canvas: {
+          scale: 2,
+          logging: false,
+          useCORS: true,
+          scrollY: 0,
+          windowWidth: 700,
+          letterRendering: true, // Try to fix text spacing
+        }
+      });
+    });
+
+    document.body.removeChild(container);
+
+  } catch (error) {
+    console.error("HTML to PDF Export Error:", error);
+    alert("PDF generation failed. Please try 'Original Format' or 'HTML' export.");
+    throw error;
+  }
+};
 
 export const exportCorrectedDocument = async (
   originalBase64: string,
@@ -460,9 +726,34 @@ export const exportCorrectedDocument = async (
   editedContent?: string,
   mimeType?: string,
   analysisId?: string,
-  format: 'original' | 'html' | 'pdf' = 'original'
+  format: 'original' | 'html' | 'pdf' | 'docx' = 'original'
 ): Promise<void> => {
   try {
+    // If we have edited content and format is PDF, HTML, or DOCX, use the CLIENT-SIDE export
+    if ((format === 'html' || format === 'pdf' || format === 'docx') && editedContent) {
+      if (format === 'html') {
+        const blob = new Blob([editedContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Corrected_${fileName}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+      }
+
+      if (format === 'pdf') {
+        await exportHtmlAsPdf(editedContent, fileName);
+        return;
+      }
+
+      if (format === 'docx') {
+        await exportHtmlAsDocx(editedContent, fileName);
+        return;
+      }
+    }
     // Check file type
     const isWord = isWordFile(mimeType || '') ||
       fileName.toLowerCase().endsWith('.docx') ||
@@ -472,7 +763,7 @@ export const exportCorrectedDocument = async (
     const fixedIssues = issues.filter(i => i.isFixed);
 
     // Validate export conditions (relaxed for edit mode export)
-    if (!isWord && fixedIssues.length === 0 && format !== 'html') {
+    if (!isWord && fixedIssues.length === 0 && format !== 'html' && !editedContent) {
       alert("Please fix (click 'Apply Fix') at least one issue before exporting.");
       return;
     }
@@ -485,19 +776,26 @@ export const exportCorrectedDocument = async (
       hasEdits: !!editedContent
     });
 
-    // Logic based on requested format
+    // Strategy Selection
     if (format === 'html' || (isWord && format === 'original')) {
-      // Export as Word/HTML (EDITION FORMAT)
+      // Export as Word-compatible HTML
       await exportWordDocument(fileName, issues, editedContent, analysisId);
-    } else if (format === 'pdf' || (isPDF && format === 'original')) {
-      // Export as PDF (Visual highlights if PDF)
-      if (isPDF) {
-        await exportPDFDocument(originalBase64, issues, fileName);
-      } else {
-        // Word to PDF fallback (not implemented fully on client, stick to Word export or alert)
-        await exportWordDocument(fileName, issues, editedContent, analysisId); // Fallback to word for now
+    }
+    else if (format === 'pdf' || (isPDF && format === 'original')) {
+      // PREFER HTML-TO-PDF export if we have edited content (User wants the "Corrected View")
+      if (editedContent) {
+        await exportHtmlAsPdf(editedContent, fileName);
       }
-    } else {
+      // If no edited content but we have PDF, annotate the original
+      else if (isPDF) {
+        await exportPDFDocument(originalBase64, issues, fileName);
+      }
+      // Fallback: Word/HTML export
+      else {
+        await exportWordDocument(fileName, issues, editedContent, analysisId);
+      }
+    }
+    else {
       // Default fallback
       await exportWordDocument(fileName, issues, editedContent, analysisId);
     }

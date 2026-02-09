@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { 
-  ChevronRight, Key, Mail, Bell, Moon, Globe, 
+import {
+  ChevronRight, Key, Mail, Bell, Moon, Globe,
   HelpCircle, Shield, FileText, Trash2, ArrowLeft, LogOut, Search, Info
 } from 'lucide-react';
 
@@ -23,12 +23,12 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#fcfcfd] font-sans antialiased text-slate-800">
+    <div className="h-full bg-[#fcfcfd] font-sans antialiased text-slate-800 overflow-y-auto">
       {/* HEADER */}
       <header className="max-w-3xl mx-auto px-6 pt-12 pb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={onBack} 
+          <button
+            onClick={onBack}
             className="p-2 hover:bg-slate-100 rounded-full transition-all"
           >
             <ArrowLeft size={20} className="text-slate-600" />
@@ -40,23 +40,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
         </div>
         {/* Mock Zoom Control from Image */}
         <div className="flex bg-slate-800 text-white rounded-lg p-1 items-center gap-3 px-3 shadow-lg">
-           <button className="text-lg opacity-60 hover:opacity-100">−</button>
-           <Search size={14} />
-           <button className="text-lg opacity-60 hover:opacity-100">+</button>
+          <button className="text-lg opacity-60 hover:opacity-100">−</button>
+          <Search size={14} />
+          <button className="text-lg opacity-60 hover:opacity-100">+</button>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-6 pb-20 space-y-6">
-        
+
         {/* APPEARANCE SECTION */}
         <section className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-slate-50 bg-slate-50/30">
             <h2 className="text-sm font-bold text-slate-800">Appearance</h2>
           </div>
           <div className="p-2">
-            <ToggleItem 
-              icon={<Moon size={18} />} 
-              label="Dark Mode" 
+            <ToggleItem
+              icon={<Moon size={18} />}
+              label="Dark Mode"
               description="Toggle between light and dark theme"
               active={toggles.darkMode}
               onToggle={() => handleToggle('darkMode')}
@@ -70,23 +70,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
             <h2 className="text-sm font-bold text-slate-800">Notifications</h2>
           </div>
           <div className="p-2 divide-y divide-slate-50">
-            <ToggleItem 
-              icon={<Bell size={18} />} 
-              label="Email Notifications" 
+            <ToggleItem
+              icon={<Bell size={18} />}
+              label="Email Notifications"
               description="Receive updates via email"
               active={toggles.emailNotifications}
               onToggle={() => handleToggle('emailNotifications')}
             />
-            <ToggleItem 
-              icon={<Bell size={18} />} 
-              label="Push Notifications" 
+            <ToggleItem
+              icon={<Bell size={18} />}
+              label="Push Notifications"
               description="Receive push notifications"
               active={toggles.pushNotifications}
               onToggle={() => handleToggle('pushNotifications')}
             />
-            <ToggleItem 
-              icon={<CheckCircle size={18} />} 
-              label="Analysis Complete" 
+            <ToggleItem
+              icon={<CheckCircle size={18} />}
+              label="Analysis Complete"
               description="Notify when document analysis is done"
               active={toggles.analysisComplete}
               onToggle={() => handleToggle('analysisComplete')}
@@ -100,20 +100,20 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
             <h2 className="text-sm font-bold text-slate-800">Preferences</h2>
           </div>
           <div className="p-2">
-             <div className="flex items-center justify-between p-4 px-6 group">
-                <div className="flex items-center gap-4">
-                  <div className="p-2.5 bg-slate-50 text-slate-500 rounded-xl"><Globe size={18}/></div>
-                  <div>
-                    <p className="text-sm font-bold text-slate-800">Language</p>
-                    <p className="text-xs text-slate-400 font-medium">Choose your preferred language</p>
-                  </div>
+            <div className="flex items-center justify-between p-4 px-6 group">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-slate-50 text-slate-500 rounded-xl"><Globe size={18} /></div>
+                <div>
+                  <p className="text-sm font-bold text-slate-800">Language</p>
+                  <p className="text-xs text-slate-400 font-medium">Choose your preferred language</p>
                 </div>
-                <select className="bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold px-3 py-1.5 outline-none">
-                  <option>English</option>
-                  <option>Spanish</option>
-                  <option>French</option>
-                </select>
-             </div>
+              </div>
+              <select className="bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold px-3 py-1.5 outline-none">
+                <option>English</option>
+                <option>Spanish</option>
+                <option>French</option>
+              </select>
+            </div>
           </div>
         </section>
 
@@ -123,14 +123,14 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
             <h2 className="text-sm font-bold text-slate-800">Account</h2>
           </div>
           <div className="p-2 divide-y divide-slate-50">
-            <NavigationItem 
-              icon={<Shield size={18} />} 
-              label="Change Password" 
+            <NavigationItem
+              icon={<Shield size={18} />}
+              label="Change Password"
               description="Update your account password"
             />
-            <NavigationItem 
-              icon={<Trash2 size={18} />} 
-              label="Delete Account" 
+            <NavigationItem
+              icon={<Trash2 size={18} />}
+              label="Delete Account"
               description="Permanently delete your account and data"
               danger
             />
@@ -138,7 +138,7 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
         </section>
 
         {/* LOGOUT BUTTON - Full Width Red */}
-        <button 
+        <button
           onClick={onLogout}
           className="w-full bg-[#ff3b30] hover:bg-[#e6352b] text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-red-200 active:scale-[0.98] flex items-center justify-center gap-2"
         >
@@ -163,7 +163,7 @@ const ToggleItem = ({ icon, label, description, active, onToggle }: any) => (
         <p className="text-xs text-slate-400 font-medium">{description}</p>
       </div>
     </div>
-    <button 
+    <button
       onClick={onToggle}
       className={`w-11 h-6 rounded-full transition-all relative ${active ? 'bg-[#5856d6]' : 'bg-slate-200'}`}
     >
