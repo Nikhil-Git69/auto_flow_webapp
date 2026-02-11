@@ -610,161 +610,173 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
               <p className="text-xs text-slate-500 font-medium">
                 Document Score: <span className={localAnalysis.totalScore > 70 ? "text-green-600" : "text-orange-600"}>{localAnalysis.totalScore || 0}/100</span>
               </p>
-              {isWord && (
+              {isWord && !isCustomFormat && (
                 <span className="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded">
                   Editable Word Document
                 </span>
               )}
 
-              {/* SLIDING TOGGLE: Original vs Corrected */}
-              <div className="relative flex bg-slate-100 rounded-lg p-1 ml-4 border border-slate-200 shadow-inner w-64">
-                {/* Background Sliding Pill */}
-                <div
-                  className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-[#159e8a] rounded-md shadow-sm transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${viewMode === 'edit'
-                    ? 'translate-x-[100%]'
-                    : 'translate-x-0'
-                    }`}
-                />
+              {isCustomFormat && (
+                <span className="text-xs text-purple-600 font-semibold bg-purple-50 px-2 py-0.5 rounded">
+                  Custom Format Audit
+                </span>
+              )}
 
-                {/* Original Button */}
-                <button
-                  onClick={() => {
-                    if (isWord || viewMode === 'edit') {
-                      // Switch to Original view
-                      if (isWord) {
-                        // Reset content to original
-                        setEditedContent(file.textContent || '');
-                      } else {
-                        setHighlightedPdfUrl(null);
-                      }
-                      setViewMode('preview');
-                    }
-                  }}
-                  className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-300 ${viewMode !== 'edit'
-                    ? 'text-white'
-                    : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                >
-                  Original
-                </button>
+              {/* SLIDING TOGGLE: Original vs Corrected — Hidden for Custom Format */}
+              {!isCustomFormat && (
+                <div className="relative flex bg-slate-100 rounded-lg p-1 ml-4 border border-slate-200 shadow-inner w-64">
+                  {/* Background Sliding Pill */}
+                  <div
+                    className={`absolute top-1 bottom-1 left-1 w-[calc(50%-4px)] bg-[#159e8a] rounded-md shadow-sm transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${viewMode === 'edit'
+                      ? 'translate-x-[100%]'
+                      : 'translate-x-0'
+                      }`}
+                  />
 
-                {/* Corrected Button */}
-                <button
-                  onClick={() => {
-                    if (viewMode !== 'edit') {
-                      // Switch to Edit/Corrected view
-                      if (analysis.correctedContent) {
-                        setEditedContent(analysis.correctedContent);
+                  {/* Original Button */}
+                  <button
+                    onClick={() => {
+                      if (isWord || viewMode === 'edit') {
+                        // Switch to Original view
+                        if (isWord) {
+                          // Reset content to original
+                          setEditedContent(file.textContent || '');
+                        } else {
+                          setHighlightedPdfUrl(null);
+                        }
+                        setViewMode('preview');
                       }
-                      if (isPDF && analysis.correctedPdfBase64) {
-                        setHighlightedPdfUrl(`data:application/pdf;base64,${analysis.correctedPdfBase64}`);
+                    }}
+                    className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-300 ${viewMode !== 'edit'
+                      ? 'text-white'
+                      : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                  >
+                    Original
+                  </button>
+
+                  {/* Corrected Button */}
+                  <button
+                    onClick={() => {
+                      if (viewMode !== 'edit') {
+                        // Switch to Edit/Corrected view
+                        if (analysis.correctedContent) {
+                          setEditedContent(analysis.correctedContent);
+                        }
+                        if (isPDF && analysis.correctedPdfBase64) {
+                          setHighlightedPdfUrl(`data:application/pdf;base64,${analysis.correctedPdfBase64}`);
+                        }
+                        setViewMode('edit');
                       }
-                      setViewMode('edit');
-                    }
-                  }}
-                  className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-300 flex items-center justify-center gap-1.5 ${viewMode === 'edit'
-                    ? 'text-white'
-                    : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                >
-                  {viewMode === 'edit' ? (
-                    <Sparkles className="w-3 h-3 text-yellow-300" />
-                  ) : (
-                    <Sparkles className="w-3 h-3 text-[#159e8a]" />
-                  )}
-                  AI Corrected
-                </button>
-              </div>
+                    }}
+                    className={`relative z-10 flex-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors duration-300 flex items-center justify-center gap-1.5 ${viewMode === 'edit'
+                      ? 'text-white'
+                      : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                  >
+                    {viewMode === 'edit' ? (
+                      <Sparkles className="w-3 h-3 text-yellow-300" />
+                    ) : (
+                      <Sparkles className="w-3 h-3 text-[#159e8a]" />
+                    )}
+                    AI Corrected
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="flex gap-3 items-center">
-          <button
-            onClick={() => handleExport('docx')}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 bg-[#159e8a] text-white rounded-lg hover:bg-[#128a78] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-          >
-            {isExporting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <FileEdit className="w-4 h-4" />
-            )}
-            Open in Word
-          </button>
+        {/* Export/Fix buttons — Hidden for Custom Format */}
+        {!isCustomFormat && (
+          <div className="flex gap-3 items-center">
+            <button
+              onClick={() => handleExport('docx')}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-[#159e8a] text-white rounded-lg hover:bg-[#128a78] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            >
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <FileEdit className="w-4 h-4" />
+              )}
+              Open in Word
+            </button>
 
-
-
-          <button
-            onClick={handleApplyAll}
-            className="px-4 py-2 border border-slate-200 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all"
-          >
-            {isWord ? "Apply All AI Fixes" : "Auto-Fix All"}
-          </button>
-
-        </div>
+            <button
+              onClick={handleApplyAll}
+              className="px-4 py-2 border border-slate-200 text-sm font-semibold rounded-lg hover:bg-slate-50 transition-all"
+            >
+              {isWord ? "Apply All AI Fixes" : "Auto-Fix All"}
+            </button>
+          </div>
+        )}
       </header>
 
-      {/* Main Content - 3 Column Layout */}
+      {/* Main Content */}
       < div className="flex flex-1 overflow-hidden" >
-        {/* Left Column: AI Chat Sidebar */}
-        < div className="flex-shrink-0 z-10 h-full" >
-          <AIChatSidebar
-            onSendMessage={handleAIChatMessage}
-            onUploadTemplate={handleTemplateUpload}
-            isProcessing={isChatProcessing}
-          />
-        </div >
-
-        {/* Center Column: Document Editor */}
-        < div className="flex-1 bg-slate-100 p-6 overflow-hidden flex-col items-center flex" >
-          {/* Toolbar Area (if external) or just spacing */}
-
-          < div className="w-full max-w-4xl bg-white shadow-xl h-full flex flex-col rounded-lg overflow-hidden border border-slate-200" >
-            {viewMode === 'edit' ? (
-              <Editor
-                apiKey="1z3mdsuht8wx9ofpy5jda5zlj725bnfa3n4vnzh6tdaa7dc6"
-                onInit={(evt, editor) => editorRef.current = editor}
-                initialValue={editedContent || (analysis.processedContent || file.textContent || "")}
-                init={{
-                  height: '100%',
-                  menubar: true,
-                  plugins: [
-                    'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
-                    'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
-                    'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
-                  ],
-                  toolbar: 'undo redo | blocks | ' +
-                    'bold italic forecolor | alignleft aligncenter ' +
-                    'alignright alignjustify | bullist numlist outdent indent | ' +
-                    'removeformat | help',
-                  content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; padding: 2rem; }',
-                  branding: false,
-                  statusbar: true,
-                  promotion: false,
-                }}
-                onEditorChange={handleEditorChange}
-              />
-            ) : (
-              <div className="flex-1 overflow-auto p-8 scroll-smooth overscroll-contain">
-                {file.mimeType.startsWith('image/') ? (
-                  <img src={file.previewUrl} alt="Preview" className="w-full h-auto" />
-                ) : (
-                  <object
-                    data={file.previewUrl} // Always show original for now
-                    type="application/pdf"
-                    className="w-full h-full min-h-[800px]"
-                  >
-                    <iframe src={file.previewUrl} className="w-full h-full" title="pdf-viewer" />
-                  </object>
-                )}
-              </div>
-            )}
+        {/* Left Column: AI Chat Sidebar — Hidden for Custom Format */}
+        {!isCustomFormat && (
+          < div className="flex-shrink-0 z-10 h-full" >
+            <AIChatSidebar
+              onSendMessage={handleAIChatMessage}
+              onUploadTemplate={handleTemplateUpload}
+              isProcessing={isChatProcessing}
+            />
           </div >
-        </div >
+        )}
 
-        {/* Right Column: Existing Analysis Sidebar */}
-        < div className="w-[480px] bg-white border-l border-slate-200 flex flex-col h-full shadow-xl flex-shrink-0 z-10" >
+        {/* Center Column: Document Editor — Hidden for Custom Format */}
+        {!isCustomFormat && (
+          < div className="flex-1 bg-slate-100 p-6 overflow-hidden flex-col items-center flex" >
+            {/* Toolbar Area (if external) or just spacing */}
+
+            < div className="w-full max-w-4xl bg-white shadow-xl h-full flex flex-col rounded-lg overflow-hidden border border-slate-200" >
+              {viewMode === 'edit' ? (
+                <Editor
+                  apiKey="1z3mdsuht8wx9ofpy5jda5zlj725bnfa3n4vnzh6tdaa7dc6"
+                  onInit={(evt, editor) => editorRef.current = editor}
+                  initialValue={editedContent || (analysis.processedContent || file.textContent || "")}
+                  init={{
+                    height: '100%',
+                    menubar: true,
+                    plugins: [
+                      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                      'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+                    ],
+                    toolbar: 'undo redo | blocks | ' +
+                      'bold italic forecolor | alignleft aligncenter ' +
+                      'alignright alignjustify | bullist numlist outdent indent | ' +
+                      'removeformat | help',
+                    content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px; padding: 2rem; }',
+                    branding: false,
+                    statusbar: true,
+                    promotion: false,
+                  }}
+                  onEditorChange={handleEditorChange}
+                />
+              ) : (
+                <div className="flex-1 overflow-auto p-8 scroll-smooth overscroll-contain">
+                  {file.mimeType.startsWith('image/') ? (
+                    <img src={file.previewUrl} alt="Preview" className="w-full h-auto" />
+                  ) : (
+                    <object
+                      data={file.previewUrl} // Always show original for now
+                      type="application/pdf"
+                      className="w-full h-full min-h-[800px]"
+                    >
+                      <iframe src={file.previewUrl} className="w-full h-full" title="pdf-viewer" />
+                    </object>
+                  )}
+                </div>
+              )}
+            </div >
+          </div >
+        )}
+
+        {/* Right Column: Analysis Sidebar — Full width for Custom Format */}
+        < div className={`${isCustomFormat ? 'flex-1' : 'w-[480px]'} bg-white border-l border-slate-200 flex flex-col h-full shadow-xl flex-shrink-0 z-10`} >
           {/* Scrollable top section */}
           < div className="border-b border-slate-100 overflow-hidden flex-shrink-0" style={{ maxHeight: '40%' }}>
             <div className="h-full overflow-y-auto p-3">
@@ -803,6 +815,76 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
                 </div>
               )}
 
+              {/* CUSTOM FORMAT COMPLIANCE PANEL — Only visible for custom format analyses */}
+              {isCustomFormat && (
+                <div className="mb-4 rounded-lg border border-purple-200 overflow-hidden">
+                  {/* Header with PASS/FAIL badge */}
+                  <div className={`px-3 py-2 flex items-center justify-between ${isFormatCompliant ? 'bg-green-50 border-b border-green-200' :
+                    isPartiallyCompliant ? 'bg-amber-50 border-b border-amber-200' :
+                      'bg-red-50 border-b border-red-200'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                      <Ruler className="w-4 h-4 text-purple-600" />
+                      <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">Custom Format Compliance</span>
+                    </div>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isFormatCompliant ? 'bg-green-100 text-green-700' :
+                      isPartiallyCompliant ? 'bg-amber-100 text-amber-700' :
+                        'bg-red-100 text-red-700'
+                      }`}>
+                      {isFormatCompliant ? '✅ PASS' : isPartiallyCompliant ? '⚠️ WARNING' : '❌ FAIL'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-white space-y-3">
+                    {/* User's specified requirements */}
+                    {formatRequirements && (
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 mb-1.5">Your Requirements</p>
+                        <div className="space-y-1">
+                          {Object.entries(requirements).length > 0 ? (
+                            Object.entries(requirements).map(([key, value]) => {
+                              // Determine if this requirement has a violation
+                              const keyLower = key.toLowerCase();
+                              const hasViolation =
+                                (keyLower.includes('font') && hasFontMismatch) ||
+                                (keyLower.includes('margin') && issues.some(i => i.type === 'Margin' && !i.isFixed)) ||
+                                (keyLower.includes('spacing') && issues.some(i => i.type === 'Spacing' && !i.isFixed)) ||
+                                (keyLower.includes('alignment') && issues.some(i => i.type === 'Alignment' && !i.isFixed));
+
+                              return (
+                                <div key={key} className={`flex items-center gap-2 text-xs px-2 py-1.5 rounded ${hasViolation ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+                                  }`}>
+                                  {hasViolation ? (
+                                    <X className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                                  ) : (
+                                    <Check className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                                  )}
+                                  <span className="font-medium">{key}:</span>
+                                  <span className="text-slate-600">{value as string}</span>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            /* If requirements weren't parsed into key-value pairs, show raw text */
+                            <div className="text-xs text-slate-600 bg-slate-50 rounded p-2 whitespace-pre-wrap">
+                              {formatRequirements}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Custom format issue count */}
+                    {customFormatIssues.length > 0 && (
+                      <div className="flex items-center gap-2 text-xs text-purple-700 bg-purple-50 px-2 py-1.5 rounded">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span><strong>{customFormatIssues.length}</strong> format violation{customFormatIssues.length !== 1 ? 's' : ''} detected</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Quality Score */}
               <div className="mb-4">
                 <Stats issues={issues} score={analysis.totalScore || 0} isCustomFormat={isCustomFormat} />
@@ -815,7 +897,9 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
                 }`}>
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="w-3 h-3 text-indigo-700" />
-                  <h3 className="text-xs font-bold text-indigo-900">AI Overview</h3>
+                  <h3 className="text-xs font-bold text-indigo-900">
+                    {isCustomFormat ? 'Custom Format AI Overview' : 'AI Overview'}
+                  </h3>
                 </div>
                 <div className="overflow-y-auto max-h-32">
                   <p className="text-sm leading-relaxed text-indigo-800">
@@ -843,7 +927,11 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
               >
                 <option value="ALL">All Issues</option>
                 <option value="CRITICAL">Critical Only</option>
-                {/* Add other filters as needed */}
+                {isCustomFormat && <option value="CUSTOM_FORMAT">Format Violations</option>}
+                <option value="TYPOGRAPHY">Typography</option>
+                <option value="GRAMMAR">Grammar & Spelling</option>
+                <option value="SPACING">Spacing</option>
+                <option value="TOPOLOGY">Layout & Topology</option>
               </select>
             </div>
 

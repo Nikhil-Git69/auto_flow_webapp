@@ -53,4 +53,42 @@ export const workspaceApi = {
     removeMember: (workspaceId: string, memberId: string) => fetchWithAuth(`/workspace/${workspaceId}/members/${memberId}`, {
         method: 'DELETE',
     }),
+
+    // PMS Methods
+    createTask: (workspaceId: string, taskData: any) => fetchWithAuth(`/workspace/${workspaceId}/tasks`, {
+        method: 'POST',
+        body: JSON.stringify(taskData),
+    }),
+
+    updateTask: (workspaceId: string, taskId: string, updates: any) => fetchWithAuth(`/workspace/${workspaceId}/tasks/${taskId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+    }),
+
+    // Document Status
+    updateDocumentStatus: (workspaceId: string, analysisId: string, status: string) => fetchWithAuth(`/workspace/${workspaceId}/documents/${analysisId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+    }),
+
+    // Document Comments
+    addDocumentComment: (workspaceId: string, analysisId: string, text: string) => fetchWithAuth(`/workspace/${workspaceId}/documents/${analysisId}/comments`, {
+        method: 'POST',
+        body: JSON.stringify({ text }),
+    }),
+
+    editDocumentComment: (workspaceId: string, analysisId: string, commentId: string, text: string) => fetchWithAuth(`/workspace/${workspaceId}/documents/${analysisId}/comments/${commentId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ text }),
+    }),
+
+    deleteDocumentComment: (workspaceId: string, analysisId: string, commentId: string) => fetchWithAuth(`/workspace/${workspaceId}/documents/${analysisId}/comments/${commentId}`, {
+        method: 'DELETE',
+    }),
+
+    deleteTask: (workspaceId: string, taskId: string) => fetchWithAuth(`/workspace/${workspaceId}/tasks/${taskId}`, {
+        method: 'DELETE',
+    }),
+
+    getBoard: (workspaceId: string) => fetchWithAuth(`/workspace/${workspaceId}/board`),
 };

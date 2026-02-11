@@ -42,7 +42,7 @@
 //       </div>
 
 //       <h4 className="text-sm font-semibold text-slate-800 mb-1">{issue.description}</h4>
-      
+
 //       {issue.originalText && (
 //          <div className="text-xs text-red-500/70 bg-red-50 p-2 rounded mb-2 line-through font-mono">
 //             {issue.originalText}
@@ -74,9 +74,9 @@
 
 // export default IssueCard;
 import React from 'react';
-import { 
-  AlertCircle, CheckCircle2, Type, Layout, Eye, Wand2, 
-  Ruler, Space, AlignLeft, FileText, MoveRight, AlertTriangle, 
+import {
+  AlertCircle, CheckCircle2, Type, Layout, Eye, Wand2,
+  Ruler, Space, AlignLeft, FileText, MoveRight, AlertTriangle,
   Shield, Info
 } from 'lucide-react';
 import { Issue, IssueSeverity, IssueType } from '../types';
@@ -87,13 +87,13 @@ interface IssueCardProps {
   isWordFile?: boolean;
   isCustomFormat?: boolean;
   isTopologyIssue?: boolean;
-  customFormatIssue?: boolean; 
+  customFormatIssue?: boolean;
   demoStaticIssue?: boolean; // NEW: flag to mark static demo issues
 }
 
-const IssueCard: React.FC<IssueCardProps> = ({ 
-  issue, 
-  onApplyFix, 
+const IssueCard: React.FC<IssueCardProps> = ({
+  issue,
+  onApplyFix,
   isWordFile = false,
   isCustomFormat = false,
   isTopologyIssue = false,
@@ -114,11 +114,11 @@ const IssueCard: React.FC<IssueCardProps> = ({
 
   const getIcon = (type: IssueType | string) => {
     switch (type) {
-      case IssueType.LAYOUT: 
+      case IssueType.LAYOUT:
       case 'Layout': return <Layout className="w-4 h-4" />;
-      case IssueType.GRAMMAR: 
+      case IssueType.GRAMMAR:
       case 'Grammar': return <Type className="w-4 h-4" />;
-      case IssueType.ACCESSIBILITY: 
+      case IssueType.ACCESSIBILITY:
       case 'Accessibility': return <Eye className="w-4 h-4" />;
       case 'Typography': return <Type className="w-4 h-4" />;
       case 'Margin': return <Ruler className="w-4 h-4" />;
@@ -153,8 +153,8 @@ const IssueCard: React.FC<IssueCardProps> = ({
 
   const isMeasurementIssue = issue.measurement && issue.measurement.actual && issue.measurement.expected;
   const hasVisualEvidence = issue.visualEvidence || (issue.type === 'Margin' || issue.type === 'Spacing' || issue.type === 'Alignment');
-  const isFontMismatch = issue.description?.toLowerCase().includes('font mismatch') || 
-                         (issue.type === 'Typography' && (customFormatIssue || demoStaticIssue));
+  const isFontMismatch = issue.description?.toLowerCase().includes('font mismatch') ||
+    (issue.type === 'Typography' && (customFormatIssue || demoStaticIssue));
 
   return (
     <div className={`p-4 rounded-lg border mb-3 transition-all ${issue.isFixed ? 'opacity-60 bg-slate-50' : 'bg-white hover:shadow-md'} ${getTopologyColor(issue.type)}`}>
@@ -232,8 +232,8 @@ const IssueCard: React.FC<IssueCardProps> = ({
             <AlertCircle className="w-3 h-3" />
             <span className="font-medium text-red-600">Original Text:</span>
           </div>
-          {issue.originalText.length > 100 
-            ? `${issue.originalText.substring(0, 100)}...` 
+          {issue.originalText.length > 100
+            ? `${issue.originalText.substring(0, 100)}...`
             : issue.originalText}
         </div>
       )}
@@ -244,25 +244,23 @@ const IssueCard: React.FC<IssueCardProps> = ({
             <CheckCircle2 className="w-3 h-3" />
             <span className="font-medium text-green-700">Corrected Text:</span>
           </div>
-          {issue.correctedText.length > 100 
-            ? `${issue.correctedText.substring(0, 100)}...` 
+          {issue.correctedText.length > 100
+            ? `${issue.correctedText.substring(0, 100)}...`
             : issue.correctedText}
         </div>
       )}
 
-      <div className={`text-sm text-slate-600 mb-3 p-2 rounded-md border ${
-        customFormatIssue || demoStaticIssue ? 'bg-purple-50 border-purple-100' : 
-        isTopologyIssue ? 'bg-amber-50 border-amber-100' : 
-        'bg-slate-50 border-slate-100'
-      }`}>
-        <span className={`font-semibold block text-xs mb-1 ${
-          customFormatIssue || demoStaticIssue ? 'text-purple-800' : 
-          isTopologyIssue ? 'text-amber-800' : 
-          'text-slate-700'
+      <div className={`text-sm text-slate-600 mb-3 p-2 rounded-md border ${customFormatIssue || demoStaticIssue ? 'bg-purple-50 border-purple-100' :
+          isTopologyIssue ? 'bg-amber-50 border-amber-100' :
+            'bg-slate-50 border-slate-100'
         }`}>
-          {customFormatIssue || demoStaticIssue ? '🛡️ Format Compliance:' : 
-           isTopologyIssue ? '📐 Layout Suggestion:' : 
-           '💡 Suggestion:'}
+        <span className={`font-semibold block text-xs mb-1 ${customFormatIssue || demoStaticIssue ? 'text-purple-800' :
+            isTopologyIssue ? 'text-amber-800' :
+              'text-slate-700'
+          }`}>
+          {customFormatIssue || demoStaticIssue ? '🛡️ Format Compliance:' :
+            isTopologyIssue ? '📐 Layout Suggestion:' :
+              '💡 Suggestion:'}
         </span>
         {issue.suggestion}
       </div>
@@ -282,28 +280,31 @@ const IssueCard: React.FC<IssueCardProps> = ({
             </span>
           )}
         </div>
-        
-        {issue.isFixed ? (
-          <button disabled className="flex items-center gap-1 text-green-600 text-sm font-medium px-3 py-1.5">
-            <CheckCircle2 className="w-4 h-4" /> Fixed
-          </button>
-        ) : (
-          <button 
-            onClick={handleApplyFix}
-            className={`flex items-center gap-2 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm ${
-              customFormatIssue || demoStaticIssue
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700' 
-                : isTopologyIssue 
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' 
-                : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
-            }`}
-          >
-            <Wand2 className="w-3.5 h-3.5" /> 
-            {customFormatIssue || demoStaticIssue ? 'Apply Format Fix' : 
-             isWordFile ? 'Apply to Text' : 
-             isTopologyIssue ? 'Apply Layout Fix' : 
-             'Apply Fix'}
-          </button>
+
+        {!isCustomFormat && (
+          <>
+            {issue.isFixed ? (
+              <button disabled className="flex items-center gap-1 text-green-600 text-sm font-medium px-3 py-1.5">
+                <CheckCircle2 className="w-4 h-4" /> Fixed
+              </button>
+            ) : (
+              <button
+                onClick={handleApplyFix}
+                className={`flex items-center gap-2 text-white px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow-sm ${customFormatIssue || demoStaticIssue
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                    : isTopologyIssue
+                      ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600'
+                      : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'
+                  }`}
+              >
+                <Wand2 className="w-3.5 h-3.5" />
+                {customFormatIssue || demoStaticIssue ? 'Apply Format Fix' :
+                  isWordFile ? 'Apply to Text' :
+                    isTopologyIssue ? 'Apply Layout Fix' :
+                      'Apply Fix'}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

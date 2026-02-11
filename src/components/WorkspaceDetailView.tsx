@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import {
     ArrowLeft, Share2, Upload, FileText,
-    Search, Trash2, ExternalLink, Copy, Check
+    Search, Trash2, ExternalLink, Copy, Check,
+    Layout, Calendar, MessageSquare // Added icons
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // Added hook
 import { Workspace, DocumentAnalysis, User } from '../types';
 import AnalysisSummaryModal from './AnalysisSummaryModal';
+import DocumentCommentsModal from './DocumentCommentsModal';
+import { workspaceApi } from '../services/workspaceApi';
 
 interface WorkspaceDetailViewProps {
     workspace: Workspace;
@@ -29,6 +33,8 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [sortBy, setSortBy] = useState<'date' | 'score'>('date'); // Added sort state
     const [viewAnalysis, setViewAnalysis] = useState<DocumentAnalysis | null>(null); // State for view modal
+    const [commentDoc, setCommentDoc] = useState<any>(null); // State for comments modal
+    const navigate = useNavigate(); // Hook for navigation
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(window.location.href);
@@ -45,9 +51,26 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
     const isOwner = currentUser.id === workspace.ownerId || currentUser._id === workspace.ownerId || currentUser.id === workspace.ownerId?.toString();
     const currentUserId = currentUser._id || currentUser.id; // Handle both ID formats
 
+    console.log('🔍 [WorkspaceDetailView] Debug Info:', {
+        workspaceId: workspace.id || workspace._id,
+        workspaceName: workspace.name,
+        ownerId: workspace.ownerId,
+        currentUserId,
+        isOwner,
+        documentsCount: workspace.documents?.length || 0,
+        documents: workspace.documents
+    });
+
     const filteredDocs = (workspace.documents || []).filter(doc => {
         const matchesSearch = doc.fileName.toLowerCase().includes(searchQuery.toLowerCase());
-        const visibleToUser = isOwner || doc.userId === currentUserId;
+        // Careful with ID comparison - ensure strings
+        const docUserId = doc.userId;
+        const visibleToUser = isOwner || String(docUserId) === String(currentUserId);
+
+        if (!visibleToUser) {
+            console.log(`❌ Hiding doc ${doc.fileName}: Owner? ${isOwner}, DocUser: ${docUserId}, CurrUser: ${currentUserId}`);
+        }
+
         return matchesSearch && visibleToUser;
     });
 
@@ -125,6 +148,24 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
                         )}
                     </div>
                 </header>
+
+                {/* PMS NAVIGATION TABS */}
+                <div className="flex items-center gap-4 mb-8 border-b border-slate-200 pb-1">
+                    <button
+                        className="px-4 py-2 font-bold text-[#159e8a] border-b-2 border-[#159e8a] flex items-center gap-2"
+                    >
+                        <FileText size={18} />
+                        Documents
+                    </button>
+                    {/* Board view removed as per request */}
+                    <button
+                        onClick={() => navigate(`/workspace/${workspace.id || workspace._id}/gantt`)}
+                        className="px-4 py-2 font-bold text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-t-lg transition-all flex items-center gap-2"
+                    >
+                        <Calendar size={18} />
+                        Timeline
+                    </button>
+                </div>
 
                 {/* MEMBERS & COLLABORATION */}
                 <div className="mb-12">
@@ -273,10 +314,28 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
                                         <FileText size={24} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 group-hover:text-[#159e8a] transition-colors text-lg">{doc.fileName}</h4>
+                                        <h4 className="font-bold text-slate-900 group-hover:text-[#159e8a] transition-colors text-lg flex items-center gap-2">
+                                            {doc.fileName}
+                                            {/* Status Badge */}
+                                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${doc.status === 'Accepted' ? 'bg-green-100 text-green-700' :
+                                                doc.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                                                    'bg-amber-100 text-amber-700' // Pending
+                                                }`}>
+                                                {doc.status || 'Pending'}
+                                            </span>
+                                        </h4>
                                         <div className="flex flex-wrap items-center gap-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
                                             <span>{doc.fileType}</span>
                                             <span>•</span>
+                                            {/* Format Tag */}
+                                            <span className={`px-1.5 py-0.5 rounded text-[10px] ${doc.formatType === 'concept' ? 'bg-indigo-100 text-indigo-600' :
+                                                doc.formatType === 'custom' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-slate-100 text-slate-500 hidden'
+                                                }`}>
+                                                {doc.formatType === 'concept' ? 'CONCEPT' : doc.formatType === 'custom' ? 'CUSTOM' : ''}
+                                            </span>
+                                            <span className={doc.formatType && doc.formatType !== 'default' ? '' : 'hidden'}>•</span>
+
                                             <span>{new Date(doc.uploadDate).toLocaleDateString()}</span>
                                             {(isOwner || doc.submitterName) && (
                                                 <>
@@ -290,6 +349,35 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between md:justify-end gap-4 w-full md:w-auto mt-2 md:mt-0 border-t md:border-0 border-slate-50 pt-3 md:pt-0">
+                                    {/* Admin Status Control */}
+                                    {isOwner && (
+                                        <div className="mr-2">
+                                            <select
+                                                value={doc.status || 'Pending'}
+                                                onChange={async (e) => {
+                                                    try {
+                                                        const newStatus = e.target.value;
+                                                        // Assuming workspaceApi is imported at the top of the file or available in scope
+                                                        // If not, you'd need to add `import * as workspaceApi from '../services/workspaceApi';`
+                                                        await workspaceApi.updateDocumentStatus(workspace.id || workspace._id, doc.analysisId, newStatus);
+                                                        window.location.reload();
+                                                    } catch (err: any) {
+                                                        console.error("Status update failed:", err);
+                                                        alert(`Failed to update status: ${err.message}`);
+                                                    }
+                                                }}
+                                                className={`text-xs font-bold rounded-md py-1.5 pl-2 pr-6 border-none ring-1 outline-none cursor-pointer ${doc.status === 'Accepted' ? 'bg-green-50 text-green-700 ring-green-200 focus:ring-green-400' :
+                                                    doc.status === 'Rejected' ? 'bg-red-50 text-red-700 ring-red-200 focus:ring-red-400' :
+                                                        'bg-amber-50 text-amber-700 ring-amber-200 focus:ring-amber-400'
+                                                    }`}
+                                            >
+                                                <option value="Pending">Pending</option>
+                                                <option value="Accepted">Accepted</option>
+                                                <option value="Rejected">Rejected</option>
+                                            </select>
+                                        </div>
+                                    )}
+
                                     <div className="text-right mr-4">
                                         <div className={`text-2xl font-black ${(doc.totalScore || 0) >= 90 ? 'text-green-500' :
                                             (doc.totalScore || 0) >= 70 ? 'text-[#159e8a]' :
@@ -300,11 +388,25 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
                                         <div className="text-[10px] font-bold text-slate-300 uppercase">Analysis Score</div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {/* View Analysis Button - Opens Modal */}
+                                        {/* Comments Button */}
                                         <button
-                                            onClick={() => setViewAnalysis(doc)}
+                                            onClick={() => setCommentDoc(doc)}
+                                            className="p-3 text-slate-300 hover:text-indigo-500 hover:bg-indigo-50 rounded-2xl transition-all relative"
+                                            title="Comments"
+                                        >
+                                            <MessageSquare size={20} />
+                                            {doc.comments && doc.comments.length > 0 && (
+                                                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                                            )}
+                                        </button>
+
+                                        {/* View Analysis Button - Opens Modal or Concept View */}
+                                        <button
+                                            onClick={() => {
+                                                setViewAnalysis(doc);
+                                            }}
                                             className="p-3 text-slate-300 hover:text-[#159e8a] hover:bg-teal-50 rounded-2xl transition-all"
-                                            title="View Analysis Summary"
+                                            title="View Analysis"
                                         >
                                             <ExternalLink size={20} />
                                         </button>
@@ -337,8 +439,19 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
                 onClose={() => setViewAnalysis(null)}
                 analysis={viewAnalysis}
             />
+
+            {/* COMMENTS MODAL */}
+            <DocumentCommentsModal
+                isOpen={!!commentDoc}
+                onClose={() => setCommentDoc(null)}
+                workspaceId={workspace.id || workspace._id}
+                document={commentDoc}
+                currentUser={currentUser}
+                isAdmin={isOwner}
+            />
         </div>
     );
 };
+
 
 export default WorkspaceDetailView;

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import FileUpload from './FileUpload';
 import { DocumentAnalysis, User, Workspace } from '../types';
 import AnalysisSummaryModal from './AnalysisSummaryModal';
@@ -41,8 +42,9 @@ const Dashboard: React.FC<DashboardProps> = ({
   onNavigateSettings,
   onViewAnalysis
 }) => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [formatType, setFormatType] = useState<'default' | 'custom'>('default');
+  const [formatType, setFormatType] = useState<'default' | 'custom' | 'concept'>('default');
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [formatRequirements, setFormatRequirements] = useState<string>('');
 
@@ -155,7 +157,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         {/* UPLOAD & REQUIREMENTS SECTION */}
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
           <div className="flex gap-2 mb-8 p-1 bg-slate-100 w-fit rounded-xl border border-slate-200">
-            {(['default', 'custom'] as const).map((type) => (
+            {(['default', 'custom', 'concept'] as const).map((type) => (
               <button
                 key={type}
                 onClick={() => setFormatType(type)}
@@ -214,6 +216,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <thead className="bg-slate-50/50 text-[10px] uppercase font-black text-slate-400">
               <tr>
                 <th className="px-8 py-4">Document</th>
+                <th className="px-8 py-4">Type</th>
                 <th className="px-8 py-4">Score</th>
                 <th className="px-8 py-4 text-right">Options</th>
               </tr>
@@ -230,21 +233,26 @@ const Dashboard: React.FC<DashboardProps> = ({
                       </div>
                     </div>
                   </td>
+                  <td className="px-8 py-5">
+                    <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${doc.formatType === 'concept' ? 'bg-indigo-100 text-indigo-600' :
+                      doc.formatType === 'custom' ? 'bg-amber-100 text-amber-700' :
+                        'bg-slate-100 text-slate-500'
+                      }`}>
+                      {doc.formatType || 'Default'}
+                    </span>
+                  </td>
                   <td className="px-8 py-5 text-sm font-bold text-slate-600">{doc.totalScore}%</td>
                   <td className="px-8 py-5 text-right opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => {
-                          // Helper function to view analysis 
-                          // Propagate up to App via onFileSelect or new prop?
-                          // Re-using onFileSelect with null file but valid analysis logic requires refactor.
-                          // Better to ask App to set current analysis.
-                          // But Dashboard doesn't have onSelectAnalysis prop.
-                          // I will add onSelectAnalysis prop to Dashboard or re-use existing flow.
-                          // For now, let's assume we can pass it up.
-                          // Actually, App.tsx needs to handle this "View" action.
-                          // Let's add onViewAnalysis prop to Dashboard.
-                          if (onViewAnalysis) onViewAnalysis(doc);
+                          if (doc.formatType === 'concept') {
+                            navigate(`/concept-analysis/${doc.analysisId}`);
+                          } else if (onViewAnalysis) {
+                            onViewAnalysis(doc);
+                          } else {
+                            setViewAnalysis(doc);
+                          }
                         }}
                         className="text-slate-400 hover:text-blue-500"
                         title="View Details"
