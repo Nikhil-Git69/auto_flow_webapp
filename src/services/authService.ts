@@ -70,7 +70,7 @@ export const login = async (email: string, password: string): Promise<User> => {
 
     // Store token
     storeToken(data.data.token);
-    
+
     return data.data.user;
   } catch (error: any) {
     throw new Error(error.message || 'Network error. Please check your connection.');
@@ -94,7 +94,7 @@ export const register = async (userData: RegisterData): Promise<{ user: User; to
 
     // Store token
     storeToken(data.data.token);
-    
+
     return {
       user: data.data.user,
       token: data.data.token
@@ -107,7 +107,7 @@ export const register = async (userData: RegisterData): Promise<{ user: User; to
 // Get current user profile
 export const getCurrentUser = async (): Promise<User | null> => {
   const token = getToken();
-  
+
   if (!token) {
     return null;
   }
@@ -138,6 +138,32 @@ export const logout = (): void => {
   removeToken();
 };
 
+// Delete Account
+export const deleteAccount = async (): Promise<void> => {
+  const token = getToken();
+  if (!token) throw new Error("No authentication token found");
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/me`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to delete account");
+    }
+
+    // Clear local storage on success
+    removeToken();
+  } catch (error: any) {
+    throw new Error(error.message || "Failed to delete account");
+  }
+};
+
 // Check if user is authenticated
 export const isAuthenticated = (): boolean => {
   const token = getToken();
@@ -165,23 +191,23 @@ export const getAuthHeaders = (): HeadersInit => {
 // Demo credentials helper (for your hint section)
 export const getMockUsersHint = () => {
   return [
-    { 
-      email: 'admin@harvard.edu', 
-      password: 'password123', 
+    {
+      email: 'admin@harvard.edu',
+      password: 'password123',
       college: 'Harvard University',
       role: 'admin',
       hint: 'Administrator account'
     },
-    { 
-      email: 'teacher@mit.edu', 
-      password: 'password123', 
+    {
+      email: 'teacher@mit.edu',
+      password: 'password123',
       college: 'MIT',
       role: 'teacher',
       hint: 'Teacher account with full access'
     },
-    { 
-      email: 'student@stanford.edu', 
-      password: 'password123', 
+    {
+      email: 'student@stanford.edu',
+      password: 'password123',
       college: 'Stanford University',
       role: 'student',
       hint: 'Student account for testing'
@@ -221,7 +247,7 @@ export const seedDemoUsers = async (): Promise<void> => {
   ];
 
   console.log('Seeding demo users...');
-  
+
   for (const user of demoUsers) {
     try {
       await register(user);
@@ -230,6 +256,6 @@ export const seedDemoUsers = async (): Promise<void> => {
       console.log(`⚠️  ${user.email}: ${error.message}`);
     }
   }
-  
+
   console.log('Demo users seeding completed!');
 };

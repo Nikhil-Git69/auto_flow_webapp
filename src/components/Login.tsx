@@ -6,7 +6,7 @@ import { login, getMockUsersHint, register, seedDemoUsers } from '../services/au
 import { User as UserType } from '../types';
 
 interface LoginProps {
-  onLoginSuccess: (user: UserType) => void;
+  onLoginSuccess: (user: UserType, isSignup?: boolean) => void;
 }
 
 const BRAND_COLOR = '#159e8a';
@@ -171,10 +171,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     try {
       if (isRegistering) {
         const result = await register({ email, password, name, collegeName, role });
-        onLoginSuccess(result.user);
+        onLoginSuccess(result.user, true); // Pass true for signup
       } else {
         const user = await login(email, password);
-        onLoginSuccess(user);
+        onLoginSuccess(user, false); // Pass false for login
       }
     } catch (err: any) {
       setError(err.message || 'Authentication failed.');

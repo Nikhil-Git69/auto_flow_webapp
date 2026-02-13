@@ -188,21 +188,26 @@ const App: React.FC = () => {
     */
 
 
-    const handleLoginSuccess = (loggedInUser: User) => {
+    const handleLoginSuccess = (loggedInUser: User, isSignup: boolean = false) => {
         console.log("🔐 Login successful, user:", loggedInUser);
         // Store user in localStorage
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
         setUser(loggedInUser);
-        addToast(`Welcome back, ${loggedInUser.name}!`, 'success');
+
+        const welcomeMsg = isSignup
+            ? `Welcome, ${loggedInUser.name}!`
+            : `Welcome back, ${loggedInUser.name}!`;
+
+        addToast(welcomeMsg, 'success');
         navigate('/dashboard');
     };
 
-    const handleLogout = () => {
+    const handleLogout = (message: string = 'Logged out successfully') => {
         setUser(null);
         setCurrentFile(null);
         setCurrentAnalysis(null);
         localStorage.removeItem(USER_STORAGE_KEY);
-        addToast('Logged out successfully', 'info');
+        addToast(message, 'info');
         navigate('/login');
     };
 

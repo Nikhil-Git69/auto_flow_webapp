@@ -4,12 +4,16 @@ import {
   HelpCircle, Shield, FileText, Trash2, ArrowLeft, LogOut, Search, Info
 } from 'lucide-react';
 
+import { deleteAccount } from '../services/authService';
+
 interface SettingsViewProps {
   onBack: () => void;
-  onLogout: () => void;
+  onLogout: (message?: string) => void;
 }
 
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // State for toggles to make the UI interactive (Visual only)
   const [toggles, setToggles] = useState({
     darkMode: false,
@@ -20,6 +24,32 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
 
   const handleToggle = (key: keyof typeof toggles) => {
     setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleDeleteAccount = async () => {
+    // First confirmation
+    const confirmed = window.confirm(
+      "⚠️ ARE YOU SURE? \n\nThis will permanently delete your account and all your documents. This action CANNOT be undone."
+    );
+
+    if (confirmed) {
+      // Second confirmation for safety
+      const doubleCheck = window.confirm(
+        "🔴 LAST WARNING\n\nAll your data will be wiped immediately. Click OK to confirm account deletion."
+      );
+
+      if (doubleCheck) {
+        setIsDeleting(true);
+        try {
+          await deleteAccount();
+          // alert("Account deleted successfully."); // Removed alert
+          onLogout("Account deleted successfully"); // Pass custom toast message
+        } catch (error: any) {
+          alert(`Failed to delete account: ${error.message}`);
+          setIsDeleting(false);
+        }
+      }
+    }
   };
 
   return (
@@ -130,9 +160,10 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack, onLogout }) => {
             />
             <NavigationItem
               icon={<Trash2 size={18} />}
-              label="Delete Account"
+              label={isDeleting ? "Deleting..." : "Delete Account"}
               description="Permanently delete your account and data"
               danger
+              onClick={handleDeleteAccount}
             />
           </div>
         </section>
@@ -173,8 +204,11 @@ const ToggleItem = ({ icon, label, description, active, onToggle }: any) => (
 );
 
 // Navigation Item Component
-const NavigationItem = ({ icon, label, description, danger }: any) => (
-  <button className="w-full flex items-center justify-between p-4 px-6 group hover:bg-slate-50/50 transition-all">
+const NavigationItem = ({ icon, label, description, danger, onClick }: any) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center justify-between p-4 px-6 group hover:bg-slate-50/50 transition-all"
+  >
     <div className="flex items-center gap-4">
       <div className={`p-2.5 rounded-xl ${danger ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-500'}`}>
         {icon}
