@@ -3,7 +3,9 @@ import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 're
 import { ArrowLeft, Layout, Calendar } from 'lucide-react'; // Added icons
 import Dashboard from './components/Dashboard';
 import AnalysisView from './components/AnalysisView';
+import LandingPage from './components/LandingPage';
 import Login from './components/Login';
+import VerifyEmail from './components/VerifyEmail';
 import HomePage from './components/ProfilePage';
 import SettingsView from './components/SettingsView';
 import Toast, { ToastMessage, ToastType } from './components/Toast'; // Import Toast
@@ -15,6 +17,7 @@ import WorkspaceDetailView from './components/WorkspaceDetailView';
 import ProjectBoard from './components/pms/ProjectBoard';
 import GanttView from './components/pms/GanttView';
 import ConceptAnalysisView from './components/ConceptAnalysisView';
+import ReportAnalysisView from './components/ReportAnalysisView';
 
 // Storage keys
 const USER_STORAGE_KEY = 'autoflow_user';
@@ -46,6 +49,7 @@ const App: React.FC = () => {
     // NEW: Initialize workspaces from localStorage with migration for access codes
     // Initialize workspaces from API
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     // Fetch workspaces and history on load
     useEffect(() => {
@@ -129,18 +133,21 @@ const App: React.FC = () => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
     };
 
-    const handleCreateWorkspace = async (name: string, description: string) => {
+    const handleCreateWorkspace = async (name: string, description: string, category: string = 'General') => {
         if (!user) return;
         try {
-            const response = await workspaceApi.create(name, description);
+            const response = await workspaceApi.create(name, description, category);
             if (response.success) {
-                // Ensure ID mapping
                 const newWorkspace = { ...response.data, id: response.data.id || response.data._id };
                 setWorkspaces(prev => [newWorkspace, ...prev]);
                 addToast('Workspace created!', 'success');
             }
         } catch (error: any) {
-            addToast(error.message || 'Failed to create workspace', 'error');
+            if (error.limitReached) {
+                setShowUpgradeModal(true);
+            } else {
+                addToast(error.message || 'Failed to create workspace', 'error');
+            }
         }
     };
 
@@ -219,7 +226,7 @@ const App: React.FC = () => {
     // This prevents re-validation loops during navigation
     useEffect(() => {
         const validateSession = async () => {
-            const publicRoutes = ['/login', '/signup'];
+            const publicRoutes = ['/', '/login', '/signup', '/landingpage', '/landing'];
             const currentPath = location.pathname; // Capture current path at mount time
             const isPublicRoute = publicRoutes.includes(currentPath);
             console.log('🔍 Session validation starting - path:', currentPath, 'isPublic:', isPublicRoute);
@@ -324,6 +331,8 @@ const App: React.FC = () => {
                         // REDIRECT BASED ON FORMAT TYPE
                         if (formatType === 'concept') {
                             navigate(`/concept-analysis/${analysis.analysisId}`);
+                        } else if (formatType === 'report') {
+                            navigate(`/report-analysis/${analysis.analysisId}`);
                         } else {
                             navigate('/analysis');
                         }
@@ -474,13 +483,13 @@ const App: React.FC = () => {
         }
     };
 
-    const isPublicRoute = ['/login', '/signup'].includes(location.pathname);
+    const isPublicRoute = ['/', '/login', '/signup', '/landingpage', '/landing'].includes(location.pathname);
 
     return (
-        <div className="font-sans text-slate-900 bg-slate-50 h-screen overflow-hidden">
+        <div className={`font-sans text-slate-900 ${isPublicRoute ? 'bg-white' : 'bg-slate-50 h-screen overflow-hidden'}`}>
             <Toast toasts={toasts} removeToast={removeToast} />
 
-            <div className="flex h-full">
+            <div className={isPublicRoute ? '' : 'flex h-full'}>
                 {user && !isPublicRoute && (
                     <Sidebar
                         currentPath={location.pathname}
@@ -489,7 +498,7 @@ const App: React.FC = () => {
                     />
                 )}
 
-                <div className="flex-1 h-full overflow-hidden">
+                <div className={isPublicRoute ? '' : 'flex-1 h-full overflow-hidden'}>
                     <Routes>
                         {/* Login Route - redirects to dashboard if already logged in */}
                         <Route path="/login" element={
@@ -497,6 +506,10 @@ const App: React.FC = () => {
                         } />
                         <Route path="/signup" element={
                             isSessionLoading ? null : (user ? <Navigate to="/dashboard" replace /> : <Login onLoginSuccess={handleLoginSuccess} />)
+                        } />
+                        {/* Email verification route - always accessible */}
+                        <Route path="/verify-email" element={
+                            <VerifyEmail onLoginSuccess={handleLoginSuccess} />
                         } />
 
                         {/* Protected Routes */}
@@ -586,6 +599,11 @@ const App: React.FC = () => {
                                     onDeleteWorkspace={handleDeleteWorkspace}
                                     onOpenWorkspace={(id) => navigate(`/workspace/${id}`)}
                                     onJoinWorkspace={handleJoinWorkspace}
+                                    showUpgradeModal={showUpgradeModal}
+                                    onCloseUpgradeModal={() => setShowUpgradeModal(false)}
+                                    onWorkspaceUpdated={(ws) => {
+                                        setWorkspaces(prev => prev.map(w => (w.id || w._id) === (ws.id || ws._id) ? { ...ws, id: ws.id || ws._id } : w));
+                                    }}
                                 />
                             ) : <Navigate to="/login" replace />
                         } />
@@ -600,6 +618,25 @@ const App: React.FC = () => {
                                     onUploadFile={handleWorkspaceFileUpload}
                                     onDeleteDocument={handleDeleteWorkspaceDocument}
                                     onKickMember={handleKickWorkspaceMember}
+                                    onPromoteToCoAdmin={async (wsId, memberId) => {
+                                        try {
+                                            await workspaceApi.promoteToCoAdmin(wsId, memberId);
+                                            addToast('Member promoted to Co-Admin', 'success');
+                                            // Workspace Details will auto-refresh via Wrapper
+                                        } catch (error: any) {
+                                            console.error('Error promoting member:', error);
+                                            addToast(`Failed to promote member: ${error.message}`, 'error');
+                                        }
+                                    }}
+                                    onDemoteToMember={async (wsId, memberId) => {
+                                        try {
+                                            await workspaceApi.demoteToMember(wsId, memberId);
+                                            addToast('Co-Admin demoted to Member', 'success');
+                                        } catch (error: any) {
+                                            console.error('Error demoting member:', error);
+                                            addToast(`Failed to demote member: ${error.message}`, 'error');
+                                        }
+                                    }}
                                 />
                             ) : <Navigate to="/login" replace />
                         } />
@@ -628,11 +665,22 @@ const App: React.FC = () => {
                             ) : <Navigate to="/login" replace />
                         } />
 
+                        <Route path="/report-analysis/:id" element={
+                            isSessionLoading ? (
+                                <div className="flex items-center justify-center h-screen"><div className="text-slate-400">Loading...</div></div>
+                            ) : user ? (
+                                <ReportAnalysisView />
+                            ) : <Navigate to="/login" replace />
+                        } />
+
                         {/* Default redirect */}
+                        <Route path="/" element={<LandingPage />} />
+                        <Route path="/landingpage" element={<LandingPage />} />
+                        <Route path="/landing" element={<LandingPage />} />
                         <Route path="*" element={
                             isSessionLoading ? (
                                 <div className="flex items-center justify-center h-screen"><div className="text-slate-400">Loading...</div></div>
-                            ) : user ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+                            ) : user ? <Navigate to="/dashboard" replace /> : <LandingPage />
                         } />
                     </Routes>
                 </div>
@@ -648,7 +696,9 @@ const WorkspaceDetailWrapper: React.FC<{
     onUploadFile: (file: File, wsId: string) => void;
     onDeleteDocument: (wsId: string, fileName: string, uploadDate: string) => void;
     onKickMember: (wsId: string, memberId: string) => void;
-}> = ({ user, onBack, onUploadFile, onDeleteDocument, onKickMember }) => {
+    onPromoteToCoAdmin?: (wsId: string, memberId: string) => void;
+    onDemoteToMember?: (wsId: string, memberId: string) => void;
+}> = ({ user, onBack, onUploadFile, onDeleteDocument, onKickMember, onPromoteToCoAdmin, onDemoteToMember }) => {
     const { workspaceId } = useParams();
     const [workspace, setWorkspace] = React.useState<Workspace | null>(null);
     const [loading, setLoading] = React.useState(true);
@@ -686,6 +736,24 @@ const WorkspaceDetailWrapper: React.FC<{
                 workspaceApi.getById(workspace.id || workspace._id).then(res => {
                     if (res.success) setWorkspace(res.data);
                 });
+            }}
+            onPromoteToCoAdmin={(memberId) => {
+                if (onPromoteToCoAdmin) {
+                    onPromoteToCoAdmin(workspace.id || workspace._id, memberId);
+                    // Refresh workspace
+                    workspaceApi.getById(workspace.id || workspace._id).then(res => {
+                        if (res.success) setWorkspace(res.data);
+                    });
+                }
+            }}
+            onDemoteToMember={(memberId) => {
+                if (onDemoteToMember) {
+                    onDemoteToMember(workspace.id || workspace._id, memberId);
+                    // Refresh workspace
+                    workspaceApi.getById(workspace.id || workspace._id).then(res => {
+                        if (res.success) setWorkspace(res.data);
+                    });
+                }
             }}
         />
     );
@@ -725,6 +793,8 @@ const WorkspacePMSWrapper: React.FC<{
     if (!workspace) return <Navigate to="/workspace" replace />;
 
     const isOwner = user.id === workspace.ownerId || user._id === workspace.ownerId || user.id === workspace.ownerId?.toString();
+    const isCoAdmin = workspace.coAdmins?.includes(user.id) || workspace.coAdmins?.includes(user._id || '');
+    const isAdmin = isOwner || isCoAdmin;
 
     return (
         <div className="h-screen flex flex-col bg-white">
@@ -764,7 +834,7 @@ const WorkspacePMSWrapper: React.FC<{
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden bg-slate-50">
-                <Component workspaceId={workspaceId} isAdmin={isOwner} />
+                <Component workspaceId={workspaceId} isAdmin={isAdmin} />
             </div>
         </div>
     );

@@ -12,6 +12,7 @@ interface LoginProps {
 const BRAND_COLOR = '#159e8a';
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -21,6 +22,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [showHints, setShowHints] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -171,12 +174,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     try {
       if (isRegistering) {
         const result = await register({ email, password, name, collegeName, role });
-        onLoginSuccess(result.user);
+        if (result.requiresVerification) {
+          navigate(`/verify-email?email=${encodeURIComponent(result.email)}`);
+        }
       } else {
         const user = await login(email, password);
         onLoginSuccess(user);
       }
     } catch (err: any) {
+      // Redirect to verify-email if user tries to log in without verifying
+      if (err.requiresVerification && err.email) {
+        navigate(`/verify-email?email=${encodeURIComponent(err.email)}`);
+        return;
+      }
       setError(err.message || 'Authentication failed.');
     } finally {
       setIsLoading(false);
@@ -344,11 +354,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         }}
       >
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '40px', height: '40px', backgroundColor: BRAND_COLOR, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <FileCheck size={22} color="white" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: '40px' }} onClick={() => window.location.href = '/landing'}>
+          <div style={{ width: '44px', height: '44px', backgroundColor: 'white', border: `3px solid ${BRAND_COLOR}`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', overflow: 'hidden' }}>
+            <span style={{ color: BRAND_COLOR, fontSize: '26px', fontWeight: 900, fontFamily: 'sans-serif', lineHeight: 1, marginTop: '1px', marginRight: '1px', marginBottom: '1px' }}>A</span>
           </div>
-          <span style={{ fontSize: '22px', fontWeight: 700, color: '#111827', letterSpacing: '1px' }}>AUTO_FLOW</span>
+          <span style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', letterSpacing: '-0.025em' }}>Auto-Flow</span>
         </div>
 
         {/* Animated Content */}
@@ -382,7 +392,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <div style={iconBoxStyle(`${BRAND_COLOR}15`)}><Sparkles size={22} color={BRAND_COLOR} /></div>
             <div>
               <div style={{ fontWeight: 600, color: '#111827', fontSize: '16px', marginBottom: '4px' }}>AI-Powered Analysis</div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>Instant detection of formatting issues</div>
+              <div style={{ fontSize: '14px', color: '#6b7280' }}>Instant AI analysis of your documents</div>
             </div>
           </motion.div>
 
@@ -408,7 +418,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <div style={iconBoxStyle(`${BRAND_COLOR}15`)}><CheckCircle size={22} color={BRAND_COLOR} /></div>
             <div>
               <div style={{ fontWeight: 600, color: '#111827', fontSize: '16px', marginBottom: '4px' }}>Free Plan Available</div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>Start with 5 documents per month</div>
+              <div style={{ fontSize: '14px', color: '#6b7280' }}>Start with 3 free workspaces</div>
             </div>
           </motion.div>
 
@@ -478,11 +488,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       onChange={(e) => setPassword(e.target.value)}
                       onKeyDown={(e) => handleLoginKeyDown(e, 'password')}
                       placeholder="••••••••"
-                      style={{ ...inputStyle, paddingRight: '48px' }}
+                      style={{ ...inputStyle, paddingRight: '48px', MozAppearance: 'textfield' } as any}
                       onFocus={handleInputFocus}
                       onBlur={handleInputBlur}
+                      autoComplete="current-password"
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', lineHeight: 1 }}
+                    >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
@@ -590,17 +605,27 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
                 <div style={{ marginBottom: '18px' }}>
                   <label style={labelStyle}>Password</label>
-                  <input
-                    ref={signupPasswordRef}
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => handleSignupKeyDown(e, 'password')}
-                    placeholder="••••••••"
-                    style={inputStyle}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      ref={signupPasswordRef}
+                      type={showSignupPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={(e) => handleSignupKeyDown(e, 'password')}
+                      placeholder="••••••••"
+                      style={{ ...inputStyle, paddingRight: '48px' }}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignupPassword(!showSignupPassword)}
+                      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', lineHeight: 1 }}
+                    >
+                      {showSignupPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                   {password && (
                     <div style={{ marginTop: '10px' }}>
                       <div style={{ height: '6px', backgroundColor: '#e5e7eb', borderRadius: '3px', overflow: 'hidden' }}>
@@ -613,17 +638,27 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
                 <div style={{ marginBottom: '22px' }}>
                   <label style={labelStyle}>Confirm Password</label>
-                  <input
-                    ref={signupConfirmRef}
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    onKeyDown={(e) => handleSignupKeyDown(e, 'confirm')}
-                    placeholder="••••••••"
-                    style={inputStyle}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      ref={signupConfirmRef}
+                      type={showSignupConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onKeyDown={(e) => handleSignupKeyDown(e, 'confirm')}
+                      placeholder="••••••••"
+                      style={{ ...inputStyle, paddingRight: '48px' }}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
+                      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', lineHeight: 1 }}
+                    >
+                      {showSignupConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                 </div>
 
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '28px', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>

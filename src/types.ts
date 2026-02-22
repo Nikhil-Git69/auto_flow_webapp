@@ -88,6 +88,15 @@ export interface DocumentAnalysis {
   status?: string;
   userId?: string;
 
+  // ADDED: Extracted semantic images from Python script
+  images?: {
+    page: number;
+    category: string;
+    title: string;
+    filename: string;
+    path: string;
+  }[];
+
   // ADDED: Topology analysis fields
   analysisType?: 'standard' | 'topology_focused' | 'visual_analysis' | 'programmatic_fallback';
   geminiModel?: string;
@@ -214,12 +223,22 @@ export interface Workspace {
   _id?: string;
   name: string;
   description?: string;
+  category?: string;
   createdAt: string;
   updatedAt: string;
   ownerId: string;
-  members?: string[]; // User IDs
-  documents?: DocumentAnalysis[]; // Collaborative uploads
-  accessCode: string; // Unique 6-char code
+  coAdmins?: string[];
+  members?: string[];
+  documents?: DocumentAnalysis[];
+  accessCode: string;
+  adminUploads?: {
+    id: string;
+    fileName: string;
+    fileSize: number;
+    fileType: string;
+    uploadDate: string;
+    uploaderName: string;
+  }[];
 }
 
 export interface ApiResponse<T = any> {

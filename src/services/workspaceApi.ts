@@ -1,4 +1,4 @@
-import { getAuthHeaders } from './authService';
+import { getAuthHeaders, getToken } from './authService';
 
 const API_BASE_URL = 'http://localhost:5000';
 
@@ -16,17 +16,27 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
+        const err: any = new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
+        err.limitReached = error.limitReached || false;
+        err.status = response.status;
+        throw err;
     }
 
     return response.json();
 };
 
 export const workspaceApi = {
-    create: (name: string, description: string) => fetchWithAuth('/workspace/create', {
+    // Core workspace CRUD
+    create: (name: string, description: string, category?: string) => fetchWithAuth('/workspace/create', {
         method: 'POST',
-        body: JSON.stringify({ name, description }),
+        body: JSON.stringify({ name, description, category: category || 'General' }),
     }),
+
+    update: (id: string, data: { name?: string; description?: string; category?: string }) =>
+        fetchWithAuth(`/workspace/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
 
     getAll: () => fetchWithAuth('/workspace'),
 
@@ -41,6 +51,7 @@ export const workspaceApi = {
         method: 'DELETE',
     }),
 
+    // Documents
     addDocument: (workspaceId: string, document: any) => fetchWithAuth(`/workspace/${workspaceId}/documents`, {
         method: 'POST',
         body: JSON.stringify(document),
@@ -50,28 +61,25 @@ export const workspaceApi = {
         method: 'DELETE',
     }),
 
+    // Members
     removeMember: (workspaceId: string, memberId: string) => fetchWithAuth(`/workspace/${workspaceId}/members/${memberId}`, {
         method: 'DELETE',
     }),
 
-    // PMS Methods
-    createTask: (workspaceId: string, taskData: any) => fetchWithAuth(`/workspace/${workspaceId}/tasks`, {
+    promoteToCoAdmin: (workspaceId: string, memberId: string) => fetchWithAuth(`/workspace/${workspaceId}/members/${memberId}/promote`, {
         method: 'POST',
-        body: JSON.stringify(taskData),
     }),
 
-    updateTask: (workspaceId: string, taskId: string, updates: any) => fetchWithAuth(`/workspace/${workspaceId}/tasks/${taskId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(updates),
+    demoteToMember: (workspaceId: string, memberId: string) => fetchWithAuth(`/workspace/${workspaceId}/members/${memberId}/demote`, {
+        method: 'POST',
     }),
 
-    // Document Status
+    // Document Status & Comments
     updateDocumentStatus: (workspaceId: string, analysisId: string, status: string) => fetchWithAuth(`/workspace/${workspaceId}/documents/${analysisId}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status }),
     }),
 
-    // Document Comments
     addDocumentComment: (workspaceId: string, analysisId: string, text: string) => fetchWithAuth(`/workspace/${workspaceId}/documents/${analysisId}/comments`, {
         method: 'POST',
         body: JSON.stringify({ text }),
@@ -86,9 +94,45 @@ export const workspaceApi = {
         method: 'DELETE',
     }),
 
+    // PMS
+    createTask: (workspaceId: string, taskData: any) => fetchWithAuth(`/workspace/${workspaceId}/tasks`, {
+        method: 'POST',
+        body: JSON.stringify(taskData),
+    }),
+
+    updateTask: (workspaceId: string, taskId: string, updates: any) => fetchWithAuth(`/workspace/${workspaceId}/tasks/${taskId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+    }),
+
     deleteTask: (workspaceId: string, taskId: string) => fetchWithAuth(`/workspace/${workspaceId}/tasks/${taskId}`, {
         method: 'DELETE',
     }),
 
     getBoard: (workspaceId: string) => fetchWithAuth(`/workspace/${workspaceId}/board`),
+
+    // Admin Direct Uploads
+    uploadAdminFile: async (workspaceId: string, file: File) => {
+        const headers = getAuthHeaders() as Record<string, string>;
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await fetch(`${API_BASE_URL}/workspace/${workspaceId}/admin-upload`, {
+            method: 'POST',
+            headers,
+            body: formData,
+        });
+        if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            throw new Error(error.error || 'Upload failed');
+        }
+        return response.json();
+    },
+
+    deleteAdminFile: (workspaceId: string, uploadId: string) =>
+        fetchWithAuth(`/workspace/${workspaceId}/admin-upload/${uploadId}`, { method: 'DELETE' }),
+
+    getAdminFileDownloadUrl: (workspaceId: string, uploadId: string): string => {
+        const token = getToken();
+        return `${API_BASE_URL}/workspace/${workspaceId}/admin-upload/${uploadId}/download${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    },
 };

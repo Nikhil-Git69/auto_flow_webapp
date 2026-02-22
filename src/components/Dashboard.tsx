@@ -14,6 +14,7 @@ import {
   FolderInput // Added import
 } from 'lucide-react';
 import Stats from './Stats';
+import UploadRafiki from '../assets/Upload-rafiki.svg';
 
 interface DashboardProps {
   user: User;
@@ -44,7 +45,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [formatType, setFormatType] = useState<'default' | 'custom' | 'concept'>('default');
+  const [formatType, setFormatType] = useState<'default' | 'custom' | 'concept' | 'report'>('default');
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [formatRequirements, setFormatRequirements] = useState<string>('');
 
@@ -52,6 +53,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   const [isWorkspaceModalOpen, setIsWorkspaceModalOpen] = useState(false);
   const [selectedDocForUpload, setSelectedDocForUpload] = useState<DocumentAnalysis | null>(null);
   const [viewAnalysis, setViewAnalysis] = useState<DocumentAnalysis | null>(null); // State for view modal
+  const [imageError, setImageError] = useState(false);
 
   // ... (Keep all your existing FormatField logic and initialFormatFields exactly as they are)
   const initialFormatFields: Record<string, any[]> = {
@@ -130,34 +132,46 @@ const Dashboard: React.FC<DashboardProps> = ({
   return (
     <div className="h-full w-full bg-slate-50 font-sans antialiased text-slate-900 overflow-hidden flex flex-col">
       {/* MAIN CONTENT AREA */}
-      <main className="flex-1 overflow-y-auto p-6 md:p-10">
-        <header className="mb-8 flex justify-between items-end w-full">
-          <div>
-            <h1 className="text-3xl text-[#159e8a] font-bold tracking-tight">AUTO-FLOW</h1>
-            <p className="text-[#159e8a] font-medium">{user.collegeName} Dashboard</p>
-          </div>
-          <div className="text-right text-xs text-slate-400">
-            Welcome, <span className="text-slate-700 font-bold">{user.name}</span>
-          </div>
-          {/* STATS SUMMARY CARDS */}
-          <div className="flex gap-4 w-full md:w-auto">
-            <div className="bg-white p-4 px-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 flex-1 md:flex-initial">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"><Files size={20} /></div>
-              <div><p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Total</p><p className="text-xl font-black text-slate-800 leading-none">{Stats.total}</p></div>
-            </div>
-            <div className="bg-white p-4 px-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 flex-1 md:flex-initial">
-              <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center"><BarChart3 size={20} /></div>
-              <div><p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">Avg Score</p><p className="text-xl font-black text-slate-800 leading-none">{Stats.avgScore}%</p></div>
-            </div>
+      <main className="flex-1 overflow-y-auto py-8 px-6 md:px-10">
+        <header className="mb-8 flex flex-col md:flex-row justify-between items-center w-full gap-6">
+          <div className="flex flex-row items-baseline gap-4">
+            <h1 className="text-4xl text-[#159e8a] font-black tracking-tight leading-10 mb-0">AUTO-FLOW</h1>
+            <p className="text-[#159e8a] font-medium text-lg m-0">{user.collegeName}</p>
           </div>
 
+          <div
+            className="flex items-center gap-3 cursor-pointer group hover:bg-slate-100 p-2 pr-4 rounded-full transition-colors"
+            onClick={onNavigateProfile}
+            title="View Profile"
+          >
+            <div className="w-12 h-12 rounded-full overflow-hidden border-[3px] border-white shadow-[0_0_0_2px_#159e8a,0_4px_10px_rgba(21,158,138,0.2)] bg-[#159e8a] flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+              {(user.logoUrl && !imageError) ? (
+                <img
+                  src={user.logoUrl.startsWith('http') ? user.logoUrl : `http://localhost:5000${user.logoUrl}`}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                    setImageError(true);
+                  }}
+                />
+              ) : (
+                <span className="text-white text-xl font-bold tracking-tight select-none">
+                  {user.name?.charAt(0) || 'U'}
+                </span>
+              )}
+            </div>
+            <p className="text-slate-800 text-base font-bold">
+              {user.name}
+            </p>
+          </div>
         </header>
 
 
         {/* UPLOAD & REQUIREMENTS SECTION */}
         <div className="w-full bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8">
           <div className="flex gap-2 mb-8 p-1 bg-slate-100 w-fit rounded-xl border border-slate-200">
-            {(['default', 'custom', 'concept'] as const).map((type) => (
+            {(['default', 'report'] as const).map((type) => (
               <button
                 key={type}
                 onClick={() => setFormatType(type)}
@@ -169,27 +183,26 @@ const Dashboard: React.FC<DashboardProps> = ({
             ))}
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-12 relative z-0">
+            {/* Directional Dotted Arrow */}
+            {(formatType === 'default' || formatType === 'report') && (
+              <div className="hidden xl:flex absolute left-1/2 -ml-6 top-1/2 -translate-y-1/2 w-[22rem] h-40 items-center justify-center pointer-events-none z-10 opacity-70">
+                <svg viewBox="0 0 250 120" className="w-full h-full text-indigo-400 drop-shadow-sm" fill="none" stroke="currentColor">
+                  {/* Extruded curly dashes with a loop in the middle */}
+                  <path d="M 230 90 C 180 120, 140 80, 150 50 C 160 20, 200 40, 170 80 C 140 120, 60 60, 0 60" strokeWidth="3" strokeDasharray="6 6" strokeLinecap="round" />
+                  {/* Arrowhead pointing left at the very edge (x=0) */}
+                  <path d="M 0 60 L 15 50 M 0 60 L 15 70" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+            )}
+
             <div className="space-y-6">
               <FileUpload onFileSelect={(file) => onFileSelect(file, formatType, templateFile || undefined, formatRequirements)} isProcessing={isProcessing} />
-              {formatType === 'custom' && (
-                <div className="p-6 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                  <h4 className="font-bold text-slate-700 text-xs mb-4 uppercase tracking-wider flex items-center gap-2">
-                    <Upload size={14} /> Optional: Template
-                  </h4>
-                  <input type="file" onChange={(e) => setTemplateFile(e.target.files?.[0] || null)} className="text-xs cursor-pointer w-full" />
-                </div>
-              )}
             </div>
 
-            {formatType === 'custom' && (
-              <div className="space-y-3">
-                <h3 className="font-bold text-slate-800 text-sm">Formatting Requirements</h3>
-                <div className="max-h-[400px] overflow-y-auto pr-2">
-                  {renderSection('margins', 'Page Layout', formatFields.margins)}
-                  {renderSection('typography', 'Typography', formatFields.typography)}
-                  {renderSection('spacing', 'Spacing', formatFields.spacing)}
-                </div>
+            {(formatType === 'default' || formatType === 'report') && (
+              <div className="flex items-center justify-end pr-12 xl:pr-8 opacity-90 pointer-events-none w-full h-full -mt-6">
+                <img src={UploadRafiki} alt="Upload Illustration" className="h-[220px] xl:h-[260px] w-auto object-contain drop-shadow-sm right-0" />
               </div>
             )}
           </div>
@@ -235,8 +248,9 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </td>
                   <td className="px-8 py-5">
                     <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${doc.formatType === 'concept' ? 'bg-indigo-100 text-indigo-600' :
-                      doc.formatType === 'custom' ? 'bg-amber-100 text-amber-700' :
-                        'bg-slate-100 text-slate-500'
+                      doc.formatType === 'report' ? 'bg-amber-100 text-amber-700' :
+                        doc.formatType === 'custom' ? 'bg-amber-100 text-amber-700' :
+                          'bg-slate-100 text-slate-500'
                       }`}>
                       {doc.formatType || 'Default'}
                     </span>
@@ -248,6 +262,8 @@ const Dashboard: React.FC<DashboardProps> = ({
                         onClick={() => {
                           if (doc.formatType === 'concept') {
                             navigate(`/concept-analysis/${doc.analysisId}`);
+                          } else if (doc.formatType === 'report') {
+                            navigate(`/report-analysis/${doc.analysisId}`);
                           } else if (onViewAnalysis) {
                             onViewAnalysis(doc);
                           } else {

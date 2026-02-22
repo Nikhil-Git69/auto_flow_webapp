@@ -1,88 +1,3 @@
-// // frontend/src/services/api.ts
-// import { getAuthHeaders } from './authService';
-
-// const API_BASE_URL = 'http://localhost:5000';
-
-// // Generic fetch wrapper with auth
-// const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
-//   const headers = {
-//     'Content-Type': 'application/json',
-//     ...getAuthHeaders(),
-//     ...options.headers,
-//   };
-
-//   const response = await fetch(`${API_BASE_URL}${url}`, {
-//     ...options,
-//     headers,
-//   });
-
-//   if (!response.ok) {
-//     const error = await response.json().catch(() => ({}));
-//     throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
-//   }
-
-//   return response.json();
-// };
-
-// // Analysis API
-// export const analysisApi = {
-//   // Get all analyses
-//   getAll: (filters?: { userId?: string; minScore?: number; maxScore?: number }) => {
-//     const params = new URLSearchParams();
-//     if (filters?.userId) params.append('userId', filters.userId);
-//     if (filters?.minScore) params.append('minScore', filters.minScore.toString());
-//     if (filters?.maxScore) params.append('maxScore', filters.maxScore.toString());
-
-//     const query = params.toString() ? `?${params.toString()}` : '';
-//     return fetchWithAuth(`/analysis${query}`);
-//   },
-
-//   // Get analysis by ID
-//   getById: (id: string) => fetchWithAuth(`/analysis/id/${id}`),
-
-//   // Create analysis
-//   create: (data: any) => fetchWithAuth('/analysis', {
-//     method: 'POST',
-//     body: JSON.stringify(data),
-//   }),
-
-//   // Update analysis
-//   update: (id: string, data: any) => fetchWithAuth(`/analysis/${id}`, {
-//     method: 'PATCH',
-//     body: JSON.stringify(data),
-//   }),
-
-//   // Delete analysis
-//   delete: (id: string) => fetchWithAuth(`/analysis/${id}`, {
-//     method: 'DELETE',
-//   }),
-
-//   // Get user stats
-//   getUserStats: (userId: string) => fetchWithAuth(`/analysis/stats/${userId}`),
-
-//   // Upload file
-//   uploadFile: async (file: File, userId: string) => {
-//     const formData = new FormData();
-//     formData.append('document', file);
-//     formData.append('userId', userId);
-//     formData.append('fileName', file.name);
-
-//     const headers = getAuthHeaders();
-
-//     const response = await fetch(`${API_BASE_URL}/analysis/upload-file`, {
-//       method: 'POST',
-//       headers,
-//       body: formData,
-//     });
-
-//     if (!response.ok) {
-//       const error = await response.json().catch(() => ({}));
-//       throw new Error(error.error || 'Upload failed');
-//     }
-
-//     return response.json();
-//   }
-// };
 import { getAuthHeaders } from './authService';
 
 const API_BASE_URL = 'http://localhost:5000';
@@ -337,6 +252,52 @@ export const analysisApi = {
       throw error;
     }
   },
+
+  // Download original document
+  downloadOriginal: async (analysisId: string, fileName: string) => {
+    const headers = getAuthHeaders();
+
+    const response = await fetch(`${API_BASE_URL}/analysis/${analysisId}/download`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to download document');
+    }
+
+    // Handle the file download programmatically via Blob
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+
+    return { success: true };
+  },
+
+  // Get Original Document Preview URL
+  getDocumentPreviewUrl: async (analysisId: string) => {
+    const headers = getAuthHeaders();
+
+    const response = await fetch(`${API_BASE_URL}/analysis/${analysisId}/download`, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to load document preview');
+    }
+
+    const blob = await response.blob();
+    return window.URL.createObjectURL(blob);
+  },
+
   // Export corrected document
   exportCorrected: async (analysisId: string, fixedIssueIds: string[]) => {
     const headers = getAuthHeaders();
@@ -484,6 +445,28 @@ export const userApi = {
     method: 'PATCH',
     body: JSON.stringify(data),
   }),
+  uploadAvatar: async (userId: string, avatarFile: File) => {
+    const formData = new FormData();
+    formData.append('avatar', avatarFile);
+
+    // Get auth headers and cast to Record to allow destructuring
+    const authHeaders = getAuthHeaders() as Record<string, string>;
+    const { 'Content-Type': _, ...headers } = authHeaders;
+
+    // We cannot use fetchWithAuth directly because we need to omit Content-Type for FormData
+    const response = await fetch(`http://localhost:5000/users/${userId}/avatar`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return response.json();
+  }
 };
 
 // Document API
