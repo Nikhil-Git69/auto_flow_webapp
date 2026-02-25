@@ -11,6 +11,7 @@ import SettingsView from './components/SettingsView';
 import Toast, { ToastMessage, ToastType } from './components/Toast'; // Import Toast
 import { UploadedFile, DocumentAnalysis, User, Workspace } from './types';
 import { analysisApi, workspaceApi } from './services/api';
+import { logout as authLogout, getCurrentUser } from './services/authService';
 import Sidebar from './components/Sidebar';
 import WorkspacePage from './components/WorkspacePage';
 import WorkspaceDetailView from './components/WorkspaceDetailView';
@@ -50,18 +51,19 @@ const App: React.FC = () => {
     // Initialize workspaces from API
     const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [workspaceView, setWorkspaceView] = useState<'active' | 'archived'>('active');
 
     // Fetch workspaces and history on load
     useEffect(() => {
         if (user) {
-            loadWorkspaces();
+            loadWorkspaces(workspaceView === 'archived');
             loadHistory();
         }
-    }, [user]);
+    }, [user, workspaceView]);
 
-    const loadWorkspaces = async () => {
+    const loadWorkspaces = async (archived: boolean = false) => {
         try {
-            const response = await workspaceApi.getAll();
+            const response = await workspaceApi.getAll(archived);
             if (response.success) {
                 // Ensure id property exists for frontend compatibility
                 const mappedWorkspaces = response.data.map((ws: any) => ({
@@ -176,6 +178,27 @@ const App: React.FC = () => {
         }
     };
 
+    const handleArchiveWorkspace = async (id: string) => {
+        try {
+            await workspaceApi.archive(id);
+            // If we are in active view, remove it. If we are in archived view (shouldn't happen for archive call), remove it too.
+            setWorkspaces(prev => prev.filter(ws => (ws.id || ws._id) !== id));
+            addToast('Workspace archived', 'success');
+        } catch (error: any) {
+            addToast(error.message || 'Failed to archive workspace', 'error');
+        }
+    };
+
+    const handleUnarchiveWorkspace = async (id: string) => {
+        try {
+            await workspaceApi.unarchive(id);
+            setWorkspaces(prev => prev.filter(ws => (ws.id || ws._id) !== id));
+            addToast('Workspace unarchived', 'success');
+        } catch (error: any) {
+            addToast(error.message || 'Failed to unarchive workspace', 'error');
+        }
+    };
+
 
 
 
@@ -200,17 +223,32 @@ const App: React.FC = () => {
         // Store user in localStorage
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(loggedInUser));
         setUser(loggedInUser);
-        addToast(`Welcome back, ${loggedInUser.name}!`, 'success');
+        addToast(`Welcome, ${loggedInUser.name}!`, 'success');
         navigate('/dashboard');
     };
 
-    const handleLogout = () => {
-        setUser(null);
-        setCurrentFile(null);
-        setCurrentAnalysis(null);
+    const handleLogout = (message?: string | React.MouseEvent, type: 'success' | 'info' | 'error' = 'info') => {
+        // Prevent event from being treated as message
+        const actualMessage = typeof message === 'string' ? message : undefined;
+        const actualType = typeof message === 'string' ? type : 'info';
+
+        console.log("🚪 handleLogout called via:", typeof message === 'string' ? 'Manual/Delete' : 'Button Click');
+
+        // 1. Clear tokens and storage
+        authLogout();
         localStorage.removeItem(USER_STORAGE_KEY);
-        addToast('Logged out successfully', 'info');
-        navigate('/login');
+
+        // 2. Persist toast for after the "Automated Refresh"
+        const logoutToast = {
+            id: Date.now().toString(),
+            message: actualMessage || 'Logged out successfully',
+            type: actualType
+        };
+        localStorage.setItem('pending_logout_toast', JSON.stringify(logoutToast));
+
+        // 3. Force a full page reload to the login page
+        // This is the "hard refresh" the user confirmed resolved the blank screen.
+        window.location.href = '/login';
     };
 
     // Track current route in localStorage for refresh preservation
@@ -225,6 +263,18 @@ const App: React.FC = () => {
     // Validate session on mount ONLY - not on pathname changes
     // This prevents re-validation loops during navigation
     useEffect(() => {
+        // Check for pending logout toast
+        const pendingToastStr = localStorage.getItem('pending_logout_toast');
+        if (pendingToastStr) {
+            try {
+                const toast = JSON.parse(pendingToastStr);
+                addToast(toast.message, toast.type);
+            } catch (e) {
+                console.error("Failed to parse pending toast", e);
+            }
+            localStorage.removeItem('pending_logout_toast');
+        }
+
         const validateSession = async () => {
             const publicRoutes = ['/', '/login', '/signup', '/landingpage', '/landing'];
             const currentPath = location.pathname; // Capture current path at mount time
@@ -240,19 +290,13 @@ const App: React.FC = () => {
 
             // Only validate and restore session for protected routes
             try {
-                const currentUser = await import('./services/authService').then(m => m.getCurrentUser());
-                if (currentUser) {
-                    console.log("✅ Session validated for user:", currentUser.email, 'on path:', currentPath);
-                    // Store user in localStorage
-                    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(currentUser));
-                    setUser(currentUser);
-
-                    // CRITICAL: Don't navigate away from the current path!
-                    // The routes will handle rendering the correct component
-                    console.log('✨ Staying on current path after session validation:', currentPath);
+                const currentUserData = await getCurrentUser();
+                if (currentUserData) {
+                    console.log("✅ Session validated for user:", currentUserData.email, 'on path:', currentPath);
+                    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(currentUserData));
+                    setUser(currentUserData);
                 } else {
                     console.log("⚠️ Session invalid or expired");
-                    // Clear user if session is invalid
                     setUser(null);
                     localStorage.removeItem(USER_STORAGE_KEY);
                 }
@@ -502,7 +546,11 @@ const App: React.FC = () => {
                     <Routes>
                         {/* Login Route - redirects to dashboard if already logged in */}
                         <Route path="/login" element={
-                            isSessionLoading ? null : (user ? <Navigate to="/dashboard" replace /> : <Login onLoginSuccess={handleLoginSuccess} />)
+                            isSessionLoading ? (
+                                <div className="flex items-center justify-center h-screen bg-white">
+                                    <div className="w-8 h-8 border-4 border-[#159e8a] border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            ) : (user ? <Navigate to="/dashboard" replace /> : <Login onLoginSuccess={handleLoginSuccess} />)
                         } />
                         <Route path="/signup" element={
                             isSessionLoading ? null : (user ? <Navigate to="/dashboard" replace /> : <Login onLoginSuccess={handleLoginSuccess} />)
@@ -571,7 +619,7 @@ const App: React.FC = () => {
                                 <div className="flex items-center justify-center h-screen"><div className="text-slate-400">Loading...</div></div>
                             ) : user ? (
                                 <SettingsView
-                                    onBack={goToDashboard}
+                                    user={user}
                                     onLogout={handleLogout}
                                 />
                             ) : <Navigate to="/login" replace />
@@ -604,6 +652,10 @@ const App: React.FC = () => {
                                     onWorkspaceUpdated={(ws) => {
                                         setWorkspaces(prev => prev.map(w => (w.id || w._id) === (ws.id || ws._id) ? { ...ws, id: ws.id || ws._id } : w));
                                     }}
+                                    onArchiveWorkspace={handleArchiveWorkspace}
+                                    onUnarchiveWorkspace={handleUnarchiveWorkspace}
+                                    currentView={workspaceView}
+                                    onViewChange={(view) => setWorkspaceView(view)}
                                 />
                             ) : <Navigate to="/login" replace />
                         } />

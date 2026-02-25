@@ -148,7 +148,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       {isProcessing ? (
         <div className="flex flex-col items-center animate-pulse p-6">
             <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
-            <p className="text-lg font-medium text-slate-700">Analyzing layout & margins...</p>
+            <p className="text-lg font-medium text-slate-700">Analyzing.....</p>
         </div>
       ) : (
         <label htmlFor={id} className="flex flex-col items-center cursor-pointer w-full h-full justify-center p-6 text-center">

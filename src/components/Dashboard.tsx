@@ -23,7 +23,7 @@ interface DashboardProps {
   onAddToWorkspace?: (doc: DocumentAnalysis, workspaceId: string) => void; // Added prop
   isProcessing: boolean;
   history: DocumentAnalysis[];
-  onLogout: () => void;
+  onLogout: (message?: string, type?: 'success' | 'info' | 'error') => void;
   onDeleteDocument: (fileName: string, uploadDate: string) => void;
   onNavigateProfile?: () => void;
   onNavigateSettings?: () => void;
@@ -175,10 +175,11 @@ const Dashboard: React.FC<DashboardProps> = ({
               <button
                 key={type}
                 onClick={() => setFormatType(type)}
-                className={`px-8 py-2.5 rounded-lg text-xs font-black tracking-widest transition-all ${formatType === type ? 'bg-white text-[#159e8a] shadow-md' : 'text-slate-500 hover:text-slate-700'
+                className={`relative px-8 py-2.5 rounded-lg text-xs font-black tracking-widest transition-all ${formatType === type ? 'bg-white text-[#159e8a] shadow-md' : 'text-slate-500 hover:text-slate-700'
                   }`}
               >
                 {type.toUpperCase()}
+                
               </button>
             ))}
           </div>
@@ -230,7 +231,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <tr>
                 <th className="px-8 py-4">Document</th>
                 <th className="px-8 py-4">Type</th>
-                <th className="px-8 py-4">Score</th>
+                <th className="px-8 py-4">Date</th>
                 <th className="px-8 py-4 text-right">Options</th>
               </tr>
             </thead>
@@ -255,8 +256,12 @@ const Dashboard: React.FC<DashboardProps> = ({
                       {doc.formatType || 'Default'}
                     </span>
                   </td>
-                  <td className="px-8 py-5 text-sm font-bold text-slate-600">{doc.totalScore}%</td>
-                  <td className="px-8 py-5 text-right opacity-0 group-hover:opacity-100 transition-opacity">
+                  <td className="px-8 py-5 text-sm text-slate-500 font-medium">
+                    {doc.uploadDate
+                      ? new Date(doc.uploadDate).toISOString().slice(0, 10)
+                      : '—'}
+                  </td>
+                  <td className="px-8 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => {

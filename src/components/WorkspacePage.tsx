@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Plus, Trash2, Search, ExternalLink, Pencil, Crown, Zap, X, Tag } from 'lucide-react';
+import { Layout, Plus, Trash2, Search, ExternalLink, Pencil, Crown, Zap, X, Tag, Archive, ArchiveRestore } from 'lucide-react';
 import { Workspace } from '../types';
 import { workspaceApi } from '../services/workspaceApi';
 
@@ -12,6 +12,10 @@ interface WorkspacePageProps {
     showUpgradeModal?: boolean;
     onCloseUpgradeModal?: () => void;
     onWorkspaceUpdated?: (ws: Workspace) => void;
+    onArchiveWorkspace?: (id: string) => void;
+    onUnarchiveWorkspace?: (id: string) => void;
+    currentView?: 'active' | 'archived';
+    onViewChange?: (view: 'active' | 'archived') => void;
 }
 
 const WorkspacePage: React.FC<WorkspacePageProps> = ({
@@ -22,7 +26,11 @@ const WorkspacePage: React.FC<WorkspacePageProps> = ({
     onJoinWorkspace,
     showUpgradeModal = false,
     onCloseUpgradeModal,
-    onWorkspaceUpdated
+    onWorkspaceUpdated,
+    onArchiveWorkspace,
+    onUnarchiveWorkspace,
+    currentView = 'active',
+    onViewChange
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
@@ -104,22 +112,37 @@ const WorkspacePage: React.FC<WorkspacePageProps> = ({
                 {/* HEADER */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
                     <div>
-                        <h1 className="text-4xl font-black tracking-tight text-slate-900 mb-2">Workspaces</h1>
-                        <p className="text-slate-500 font-medium">Create and manage your project environments</p>
+                        <h1 className="text-4xl font-black tracking-tight text-[#159e8a] mb-2">{currentView === 'archived' ? 'Archived Workspaces' : 'Work-Space'}</h1>
+                        <p className="text-slate-500 font-medium">{currentView === 'archived' ? 'Your archived environments.' : 'Create and manage your project environments.'}</p>
                     </div>
                     <div className="flex gap-3">
                         <button
-                            onClick={() => setIsJoinModalOpen(true)}
-                            className="bg-white text-slate-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-sm border border-slate-200 hover:bg-slate-50 hover:text-[#159e8a] transition-all hover:-translate-y-0.5"
+                            onClick={() => onViewChange?.(currentView === 'active' ? 'archived' : 'active')}
+                            className={`px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all hover:-translate-y-0.5 shadow-sm border ${currentView === 'archived'
+                                ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-[#159e8a]'
+                                }`}
+                            title={currentView === 'active' ? 'View Archived' : 'View Active'}
                         >
-                            <Search size={20} /> Join with Code
+                            {currentView === 'active' ? <Archive size={20} /> : <ArchiveRestore size={20} />}
+                            {currentView === 'active' ? 'Archived' : 'Back to Active'}
                         </button>
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="bg-[#159e8a] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-[#159e8a33] hover:bg-[#0f8a77] transition-all hover:-translate-y-0.5"
-                        >
-                            <Plus size={20} /> Create Workspace
-                        </button>
+                        {currentView === 'active' && (
+                            <>
+                                <button
+                                    onClick={() => setIsJoinModalOpen(true)}
+                                    className="bg-white text-slate-600 px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-sm border border-slate-200 hover:bg-slate-50 hover:text-[#159e8a] transition-all hover:-translate-y-0.5"
+                                >
+                                    <Search size={20} /> Join with Code
+                                </button>
+                                <button
+                                    onClick={() => setIsModalOpen(true)}
+                                    className="bg-[#159e8a] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-[#159e8a33] hover:bg-[#0f8a77] transition-all hover:-translate-y-0.5"
+                                >
+                                    <Plus size={20} /> Create Workspace
+                                </button>
+                            </>
+                        )}
                     </div>
                 </header>
 
@@ -147,8 +170,8 @@ const WorkspacePage: React.FC<WorkspacePageProps> = ({
                             key={tag}
                             onClick={() => setCategoryFilter(tag)}
                             className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold transition-all ${categoryFilter === tag
-                                    ? 'bg-[#159e8a] text-white shadow-md shadow-[#159e8a33]'
-                                    : 'bg-white border border-slate-200 text-slate-500 hover:border-[#159e8a] hover:text-[#159e8a]'
+                                ? 'bg-[#159e8a] text-white shadow-md shadow-[#159e8a33]'
+                                : 'bg-white border border-slate-200 text-slate-500 hover:border-[#159e8a] hover:text-[#159e8a]'
                                 }`}
                         >
                             <Tag size={12} />
@@ -163,7 +186,7 @@ const WorkspacePage: React.FC<WorkspacePageProps> = ({
                         {filteredWorkspaces.map((ws) => (
                             <div
                                 key={ws.id || ws._id}
-                                className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group"
+                                className="bg-white border-2 border-[#159e8a]/10 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all group hover:border-[#159e8a]/40"
                             >
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center text-[#159e8a]">
@@ -178,8 +201,19 @@ const WorkspacePage: React.FC<WorkspacePageProps> = ({
                                             <Pencil size={16} />
                                         </button>
                                         <button
+                                            onClick={() => ws.isArchived ? onUnarchiveWorkspace?.(ws.id || ws._id) : onArchiveWorkspace?.(ws.id || ws._id)}
+                                            className={`p-2 transition-all rounded-xl ${ws.isArchived
+                                                ? 'text-amber-400 hover:text-amber-600 hover:bg-amber-50'
+                                                : 'text-slate-300 hover:text-blue-500 hover:bg-blue-50'
+                                                }`}
+                                            title={ws.isArchived ? "Unarchive workspace" : "Archive workspace"}
+                                        >
+                                            {ws.isArchived ? <ArchiveRestore size={18} /> : <Archive size={18} />}
+                                        </button>
+                                        <button
                                             onClick={() => onDeleteWorkspace(ws.id || ws._id)}
                                             className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                            title="Delete workspace"
                                         >
                                             <Trash2 size={18} />
                                         </button>
@@ -213,20 +247,26 @@ const WorkspacePage: React.FC<WorkspacePageProps> = ({
                 ) : (
                     <div className="bg-white rounded-[40px] p-20 text-center border-2 border-dashed border-slate-100">
                         <div className="w-24 h-24 bg-slate-50 rounded-[32px] flex items-center justify-center text-slate-200 mx-auto mb-6">
-                            <Layout size={40} />
+                            {currentView === 'archived' ? <Archive size={40} /> : <Layout size={40} />}
                         </div>
-                        <h2 className="text-2xl font-bold text-slate-900 mb-2">No Workspaces Found</h2>
+                        <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                            {currentView === 'archived' ? 'No Archived Workspaces' : 'No Workspaces Found'}
+                        </h2>
                         <p className="text-slate-400 max-w-sm mx-auto mb-8 font-medium">
-                            You haven't joined any workspaces yet. Create one or join an existing one using an access code.
+                            {currentView === 'archived'
+                                ? "You haven't archived any workspaces yet. Archive workspaces you don't need active to keep your space organized."
+                                : "You haven't joined any workspaces yet. Create one or join an existing one using an access code."}
                         </p>
-                        <div className="flex justify-center gap-4">
-                            <button onClick={() => setIsJoinModalOpen(true)} className="text-slate-500 font-bold hover:text-[#159e8a]">
-                                Join existing
-                            </button>
-                            <button onClick={() => setIsModalOpen(true)} className="text-[#159e8a] font-bold underline underline-offset-8">
-                                Create new workspace
-                            </button>
-                        </div>
+                        {currentView === 'active' && (
+                            <div className="flex justify-center gap-4">
+                                <button onClick={() => setIsJoinModalOpen(true)} className="text-slate-500 font-bold hover:text-[#159e8a]">
+                                    Join existing
+                                </button>
+                                <button onClick={() => setIsModalOpen(true)} className="text-[#159e8a] font-bold underline underline-offset-8">
+                                    Create new workspace
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

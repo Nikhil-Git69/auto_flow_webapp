@@ -38,7 +38,10 @@ export const workspaceApi = {
             body: JSON.stringify(data),
         }),
 
-    getAll: () => fetchWithAuth('/workspace'),
+    getAll: (archived?: boolean) => {
+        const query = archived !== undefined ? `?archived=${archived}` : '';
+        return fetchWithAuth(`/workspace${query}`);
+    },
 
     getById: (id: string) => fetchWithAuth(`/workspace/${id}`),
 
@@ -49,6 +52,14 @@ export const workspaceApi = {
 
     delete: (id: string) => fetchWithAuth(`/workspace/${id}`, {
         method: 'DELETE',
+    }),
+
+    archive: (id: string) => fetchWithAuth(`/workspace/${id}/archive`, {
+        method: 'PATCH',
+    }),
+
+    unarchive: (id: string) => fetchWithAuth(`/workspace/${id}/unarchive`, {
+        method: 'PATCH',
     }),
 
     // Documents

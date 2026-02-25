@@ -6,7 +6,7 @@ import {
 interface SidebarProps {
     currentPath: string;
     onNavigate: (path: string) => void;
-    onLogout: () => void;
+    onLogout: (message?: string, type?: 'success' | 'info' | 'error') => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPath, onNavigate, onLogout }) => {

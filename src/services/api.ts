@@ -23,6 +23,29 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   return response.json();
 };
 
+// Auth API
+export const authApi = {
+  forgotPassword: (email: string) => fetch(`${API_BASE_URL}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  }).then(res => res.json()),
+
+  verifyResetOtp: (email: string, otp: string) => fetch(`${API_BASE_URL}/auth/verify-reset-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, otp }),
+  }).then(res => res.json()),
+
+  resetPassword: (data: { email: string; otp: string; newPassword: any }) => fetch(`${API_BASE_URL}/auth/reset-password`, {
+
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }).then(res => res.json()),
+};
+
+
 // Analysis API
 export const analysisApi = {
   // Get all analyses
@@ -466,7 +489,34 @@ export const userApi = {
     }
 
     return response.json();
-  }
+  },
+  uploadBanner: async (userId: string, bannerFile: File) => {
+    const formData = new FormData();
+    formData.append('banner', bannerFile);
+
+    const authHeaders = getAuthHeaders() as Record<string, string>;
+    const { 'Content-Type': _, ...headers } = authHeaders;
+
+    const response = await fetch(`http://localhost:5000/users/${userId}/banner`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return response.json();
+  },
+  deleteAccount: (userId: string) => fetchWithAuth(`/users/${userId}`, {
+    method: 'DELETE'
+  }),
+  changePassword: (userId: string, data: any) => fetchWithAuth(`/users/${userId}/change-password`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  })
 };
 
 // Document API

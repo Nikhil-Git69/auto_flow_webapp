@@ -201,6 +201,7 @@ export interface User {
   name: string;
   collegeName: string;
   logoUrl?: string;
+  bannerUrl?: string;
   role?: 'student' | 'teacher' | 'admin';
   studentId?: string;
   department?: string;
@@ -239,6 +240,7 @@ export interface Workspace {
     uploadDate: string;
     uploaderName: string;
   }[];
+  isArchived?: boolean;
 }
 
 export interface ApiResponse<T = any> {

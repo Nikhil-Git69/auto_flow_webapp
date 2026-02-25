@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import {
-    ArrowLeft, Share2, Upload, FileText,
+    ArrowLeft, Upload, FileText,
     Search, Trash2, ExternalLink, Copy, Check,
     Layout, Calendar, MessageSquare, Eye, FolderOpen
 } from 'lucide-react';
@@ -31,7 +31,6 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
     onPromoteToCoAdmin,
     onDemoteToMember
 }) => {
-    const [copied, setCopied] = useState(false);
     const [accessCodeCopied, setAccessCodeCopied] = useState(false);
     const [showAllMembers, setShowAllMembers] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -49,11 +48,7 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
     const navigate = useNavigate();
     const workspaceReturnPath = `/workspace/${workspace.id || workspace._id}`;
 
-    const handleCopyLink = () => {
-        navigator.clipboard.writeText(window.location.href);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+
 
     const handleCopyAccessCode = () => {
         navigator.clipboard.writeText(workspace.accessCode);
@@ -116,18 +111,6 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
                         Back to Workspaces
                     </button>
 
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleCopyLink}
-                            className="px-5 py-2.5 bg-white border border-slate-100 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-sm hover:shadow-md transition-all active:scale-95"
-                        >
-                            {copied ? <Check size={18} className="text-green-500" /> : <Copy size={18} className="text-slate-400" />}
-                            {copied ? 'Copied Link' : 'Invite Link'}
-                        </button>
-                        <button className="p-2.5 bg-white border border-slate-100 rounded-2xl font-bold text-slate-400 hover:text-[#159e8a] shadow-sm transition-all">
-                            <Share2 size={20} />
-                        </button>
-                    </div>
                 </div>
 
                 {/* WORKSPACE INFO */}
@@ -140,7 +123,7 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
                             <h1 className="text-4xl font-black text-slate-900 leading-tight">{workspace.name}</h1>
                             <div className="flex items-center gap-3 mt-1">
                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-full">
-                                    Role: {isOwner ? <span className="text-[#159e8a]">Owner</span> : isCoAdmin ? <span className="text-teal-600">Co-Admin</span> : 'Member'}
+                                    Role: {isOwner ? <span className="text-[#159e8a]">Admin</span> : isCoAdmin ? <span className="text-teal-600">Co-Admin</span> : 'Member'}
                                 </span>
                                 <span className="text-xs font-bold text-slate-400">
                                     Created {new Date(workspace.createdAt).toLocaleDateString()}
@@ -270,7 +253,7 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
                                                         <span className="text-xs bg-teal-50 text-[#159e8a] px-2 py-0.5 rounded-full">You</span>
                                                     )}
                                                     {memberId === workspace.ownerId && (
-                                                        <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">Owner</span>
+                                                        <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full">Admin</span>
                                                     )}
                                                     {workspace.coAdmins?.includes(memberId) && (
                                                         <span className="text-xs bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full">Co-Admin</span>
@@ -488,7 +471,7 @@ const WorkspaceDetailView: React.FC<WorkspaceDetailViewProps> = ({
                                 </div>
                                 <div>
                                     <h2 className="text-base font-black text-slate-800 leading-tight">Reference Materials</h2>
-                                    <p className="text-xs text-slate-400 font-medium">Files shared by the workspace owner</p>
+                                    <p className="text-xs text-slate-400 font-medium">Files shared by the workspace admin</p>
                                 </div>
                                 <span className="ml-1 text-xs font-bold text-[#159e8a] bg-teal-50 border border-teal-100 px-2.5 py-0.5 rounded-full">
                                     {adminUploads.length}
