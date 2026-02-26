@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Box, CheckCircle, FileText, Layout, Layers, Hash } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle, FileText, Layout, Layers, Hash } from 'lucide-react';
 import { analysisApi } from '../services/api';
 import { DocumentAnalysis } from '../types';
 
-const ConceptAnalysisView: React.FC = () => {
+const ReportAnalysisView: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const location = useLocation();
@@ -23,36 +23,31 @@ const ConceptAnalysisView: React.FC = () => {
 
     const fetchAnalysis = async (analysisId: string) => {
         try {
-            // NOTE: Ideally backend should support GET /analysis/:id
-            // If not, we fetch all for user and find it.
-            const userStr = localStorage.getItem('autoflow_user');
-            if (userStr) {
-                const user = JSON.parse(userStr);
-                const response = await analysisApi.getAll({ userId: user.id || user._id });
-                // Handle response format variations
-                const allData = response.data || (Array.isArray(response) ? response : []);
+            setLoading(true);
+            const response = await analysisApi.getById(analysisId);
 
-                if (Array.isArray(allData)) {
-                    const found = allData.find((a: any) => a.analysisId === analysisId || a._id === analysisId);
-                    if (found) {
-                        setAnalysis({
-                            analysisId: found.analysisId || found._id,
-                            fileName: found.fileName,
-                            fileType: found.fileType,
-                            uploadDate: found.analyzedAt || found.uploadDate,
-                            totalScore: found.score,
-                            issues: [],
-                            summary: found.summary, // Total WBS
-                            processedContent: found.processedContent, // Detailed WBS HTML
-                            correctedContent: "",
-                            correctedPdfBase64: null,
-                            fileData: null
-                        });
-                    }
-                }
+            if (response.success && response.data) {
+                const found = response.data;
+                setAnalysis({
+                    analysisId: found.analysisId || found._id,
+                    fileName: found.fileName,
+                    fileType: found.fileType,
+                    uploadDate: found.analyzedAt || found.uploadDate,
+                    totalScore: found.score,
+                    issues: [],
+                    summary: found.summary, // Overview
+                    processedContent: found.processedContent, // Detailed Summary HTML
+                    correctedContent: "",
+                    correctedPdfBase64: null,
+                    fileData: null,
+                    images: found.images || [] // Load images
+                });
+            } else {
+                setAnalysis(null);
             }
         } catch (err) {
-            console.error(err);
+            console.error('Error fetching analysis:', err);
+            setAnalysis(null);
         } finally {
             setLoading(false);
         }
@@ -85,11 +80,11 @@ const ConceptAnalysisView: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-3">
                             <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                                <Box className="text-[#159e8a]" size={24} />
-                                Concept Breakdown
+                                <BookOpen className="text-[#159e8a]" size={24} />
+                                Report Overview & Summary
                             </h1>
-                            <span className="bg-teal-50 text-teal-700 text-xs px-2 py-1 rounded-md font-bold uppercase tracking-wider">
-                                Concept Analysis
+                            <span className="bg-amber-50 text-amber-700 text-xs px-2 py-1 rounded-md font-bold uppercase tracking-wider">
+                                Report Analysis
                             </span>
                         </div>
                         <p className="text-xs text-slate-500 mt-1">
@@ -103,12 +98,12 @@ const ConceptAnalysisView: React.FC = () => {
             <main className="flex-1 overflow-auto p-8">
                 <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                    {/* Left Column: Total WBS / Summary */}
+                    {/* Left Column: Overview Summary */}
                     <div className="lg:col-span-1 space-y-6">
                         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 sticky top-0">
                             <div className="flex items-center gap-2 mb-4 text-[#159e8a]">
                                 <Layout size={20} />
-                                <h2 className="font-bold text-lg">Total WBS</h2>
+                                <h2 className="font-bold text-lg">Project Overview</h2>
                             </div>
                             <div className="prose prose-sm prose-slate text-slate-600">
                                 <p className="leading-relaxed">{analysis.summary}</p>
@@ -119,7 +114,7 @@ const ConceptAnalysisView: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-slate-500 flex items-center gap-2"><FileText size={14} /> Document Type</span>
-                                        <span className="font-medium text-slate-800">Concept / Proposal</span>
+                                        <span className="font-medium text-slate-800">Project Report</span>
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
                                         <span className="text-slate-500 flex items-center gap-2"><CheckCircle size={14} /> Status</span>
@@ -135,7 +130,7 @@ const ConceptAnalysisView: React.FC = () => {
                                     <button
                                         onClick={async () => {
                                             try {
-                                                const btn = document.getElementById('download-btn-concept');
+                                                const btn = document.getElementById('download-btn-report');
                                                 if (btn) btn.innerHTML = '<span class="animate-pulse">Downloading...</span>';
 
                                                 await analysisApi.downloadOriginal(analysis.analysisId, analysis.fileName);
@@ -144,11 +139,11 @@ const ConceptAnalysisView: React.FC = () => {
                                             } catch (err) {
                                                 console.error(err);
                                                 alert("Failed to download document.");
-                                                const btn = document.getElementById('download-btn-concept');
+                                                const btn = document.getElementById('download-btn-report');
                                                 if (btn) btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg> Download Original Document';
                                             }
                                         }}
-                                        id="download-btn-concept"
+                                        id="download-btn-report"
                                         className="w-full py-3 px-4 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:border-[#159e8a] hover:text-[#159e8a] hover:bg-teal-50 transition-all flex items-center justify-center gap-2 text-sm shadow-sm"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download">
@@ -187,20 +182,28 @@ const ConceptAnalysisView: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Right Column: Detailed Breakdown */}
+                    {/* Right Column: Detailed Summary */}
                     <div className="lg:col-span-2">
                         <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 min-h-[500px]">
-                            <div className="flex items-center gap-2 mb-6 text-slate-800 border-b border-slate-100 pb-4">
-                                <Layers size={22} className="text-[#159e8a]" />
-                                <h2 className="font-bold text-xl">Detailed Work Breakdown Structure</h2>
+                            <div className="flex items-center gap-3 mb-8 text-slate-800">
+                                <FileText size={24} className="text-slate-700" />
+                                <h2 className="font-bold text-2xl">Detailed Analytical Summary of the Report</h2>
                             </div>
 
-                            <div className="prose prose-slate max-w-none hover:prose-a:text-[#159e8a]">
+                            <div className="prose prose-slate max-w-none hover:prose-a:text-[#159e8a]
+                                [&_.report-metadata]:mb-8 [&_.report-metadata_p]:!my-2 [&_.report-metadata_p]:flex [&_.report-metadata_p]:items-start [&_.report-metadata_p]:gap-2 [&_.report-metadata_p]:text-sm
+                                [&_.report-metadata_strong]:w-24 [&_.report-metadata_strong]:shrink-0 [&_.report-metadata_strong]:text-slate-800 
+                                [&_.badge]:bg-slate-100 [&_.badge]:border [&_.badge]:border-slate-200 [&_.badge]:text-slate-600 [&_.badge]:px-2 [&_.badge]:py-0.5 [&_.badge]:rounded [&_.badge]:text-[11px] [&_.badge]:uppercase [&_.badge]:tracking-wider [&_.badge]:font-bold [&_.badge]:inline-block [&_.badge]:leading-none [&_.badge]:mt-0.5
+                                [&_hr]:border-slate-200 [&_hr]:my-8
+                                [&_.diagram-note]:bg-slate-50 [&_.diagram-note]:p-3 [&_.diagram-note]:rounded-lg [&_.diagram-note]:border [&_.diagram-note]:border-slate-200 [&_.diagram-note]:text-sm [&_.diagram-note]:my-4
+                            ">
                                 {/* Render HTML Content */}
-                                <div dangerouslySetInnerHTML={{ __html: analysis.processedContent || "<p>No detailed breakdown available.</p>" }} />
+                                <div dangerouslySetInnerHTML={{ __html: analysis.processedContent || "<p>No detailed summary available.</p>" }} />
                             </div>
                         </div>
                     </div>
+
+                    {/* Extracted Figures Section removed */}
                 </div>
             </main>
 
@@ -246,4 +249,4 @@ const ConceptAnalysisView: React.FC = () => {
     );
 };
 
-export default ConceptAnalysisView;
+export default ReportAnalysisView;

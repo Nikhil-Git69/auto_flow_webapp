@@ -2,6 +2,7 @@
 // const API_BASE_URL = 'http://localhost:5000';
 const API_BASE_URL = 'https://auto-flow-backend.onrender.com';
 
+
 export interface User {
   _id: string;
   email: string;
@@ -63,23 +64,28 @@ export const login = async (email: string, password: string): Promise<User> => {
       body: JSON.stringify({ email, password }),
     });
 
-    const data: LoginResponse = await response.json();
+    const data = await response.json();
 
     if (!data.success) {
+      // Handle unverified email
+      if (data.requiresVerification) {
+        const err: any = new Error(data.error || 'Please verify your email.');
+        err.requiresVerification = true;
+        err.email = data.email || email;
+        throw err;
+      }
       throw new Error(data.error || 'Login failed');
     }
 
-    // Store token
     storeToken(data.data.token);
-
     return data.data.user;
   } catch (error: any) {
-    throw new Error(error.message || 'Network error. Please check your connection.');
+    throw error;
   }
 };
 
-// Register function
-export const register = async (userData: RegisterData): Promise<{ user: User; token: string }> => {
+// Register function — now returns requiresVerification flag instead of token
+export const register = async (userData: RegisterData): Promise<{ requiresVerification: boolean; email: string }> => {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
@@ -87,21 +93,57 @@ export const register = async (userData: RegisterData): Promise<{ user: User; to
       body: JSON.stringify(userData),
     });
 
-    const data: LoginResponse = await response.json();
+    const data = await response.json();
 
     if (!data.success) {
       throw new Error(data.error || 'Registration failed');
     }
 
-    // Store token
-    storeToken(data.data.token);
-
     return {
-      user: data.data.user,
-      token: data.data.token
+      requiresVerification: data.requiresVerification ?? true,
+      email: data.email ?? userData.email
     };
   } catch (error: any) {
     throw new Error(error.message || 'Registration failed');
+  }
+};
+
+// Verify email OTP — returns user + token on success
+export const verifyEmail = async (email: string, otp: string): Promise<{ user: User; token: string }> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otp }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      const err: any = new Error(data.error || 'Verification failed');
+      err.code = data.code;
+      throw err;
+    }
+
+    storeToken(data.data.token);
+    return { user: data.data.user, token: data.data.token };
+  } catch (error: any) {
+    throw error;
+  }
+};
+
+// Resend OTP
+export const resendOtp = async (email: string): Promise<void> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/resend-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || 'Failed to resend OTP');
+  } catch (error: any) {
+    throw new Error(error.message || 'Failed to resend OTP');
   }
 };
 

@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, FileCheck, Sparkles, Shield, CheckCircle, BookOpen, Github } from 'lucide-react';
+import { Eye, EyeOff, FileCheck, Sparkles, Shield, CheckCircle, BookOpen, Github, Key, Mail, X, ArrowLeft, Info } from 'lucide-react';
 import { login, getMockUsersHint, register, seedDemoUsers } from '../services/authService';
+import { authApi } from '../services/api';
 import { User as UserType } from '../types';
 
 interface LoginProps {
@@ -12,6 +13,7 @@ interface LoginProps {
 const BRAND_COLOR = '#159e8a';
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -21,10 +23,25 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [showHints, setShowHints] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [animationKey, setAnimationKey] = useState(0);
+
+  // Forgot Password States
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotStep, setForgotStep] = useState<1 | 2 | 3>(1); // 1: Email, 2: OTP, 3: New Password
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotOtp, setForgotOtp] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [isForgotLoading, setIsForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [showForgotNewPass, setShowForgotNewPass] = useState(false);
+  const [showForgotConfirmPass, setShowForgotConfirmPass] = useState(false);
 
   // Refs for input fields - Login
   const loginEmailRef = useRef<HTMLInputElement>(null);
@@ -171,12 +188,19 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     try {
       if (isRegistering) {
         const result = await register({ email, password, name, collegeName, role });
-        onLoginSuccess(result.user, true); // Pass true for signup
+        if (result.requiresVerification) {
+          navigate(`/verify-email?email=${encodeURIComponent(result.email)}`);
+        }
       } else {
         const user = await login(email, password);
         onLoginSuccess(user, false); // Pass false for login
       }
     } catch (err: any) {
+      // Redirect to verify-email if user tries to log in without verifying
+      if (err.requiresVerification && err.email) {
+        navigate(`/verify-email?email=${encodeURIComponent(err.email)}`);
+        return;
+      }
       setError(err.message || 'Authentication failed.');
     } finally {
       setIsLoading(false);
@@ -344,11 +368,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         }}
       >
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '40px', height: '40px', backgroundColor: BRAND_COLOR, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <FileCheck size={22} color="white" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginBottom: '40px' }} onClick={() => window.location.href = '/landing'}>
+          <div style={{ width: '44px', height: '44px', backgroundColor: 'white', border: `3px solid ${BRAND_COLOR}`, borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', overflow: 'hidden' }}>
+            <span style={{ color: BRAND_COLOR, fontSize: '26px', fontWeight: 900, fontFamily: 'sans-serif', lineHeight: 1, marginTop: '1px', marginRight: '1px', marginBottom: '1px' }}>A</span>
           </div>
-          <span style={{ fontSize: '22px', fontWeight: 700, color: '#111827', letterSpacing: '1px' }}>AUTO_FLOW</span>
+          <span style={{ fontSize: '24px', fontWeight: 700, color: '#1e293b', letterSpacing: '-0.025em' }}>Auto-Flow</span>
         </div>
 
         {/* Animated Content */}
@@ -382,7 +406,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <div style={iconBoxStyle(`${BRAND_COLOR}15`)}><Sparkles size={22} color={BRAND_COLOR} /></div>
             <div>
               <div style={{ fontWeight: 600, color: '#111827', fontSize: '16px', marginBottom: '4px' }}>AI-Powered Analysis</div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>Instant detection of formatting issues</div>
+              <div style={{ fontSize: '14px', color: '#6b7280' }}>Instant AI analysis of your documents</div>
             </div>
           </motion.div>
 
@@ -408,7 +432,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
             <div style={iconBoxStyle(`${BRAND_COLOR}15`)}><CheckCircle size={22} color={BRAND_COLOR} /></div>
             <div>
               <div style={{ fontWeight: 600, color: '#111827', fontSize: '16px', marginBottom: '4px' }}>Free Plan Available</div>
-              <div style={{ fontSize: '14px', color: '#6b7280' }}>Start with 5 documents per month</div>
+              <div style={{ fontSize: '14px', color: '#6b7280' }}>Start with 3 free workspaces</div>
             </div>
           </motion.div>
 
@@ -445,7 +469,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         <div style={{ width: '100%', maxWidth: '380px' }}>
           {!isRegistering ? (
             <div>
-              <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: '34px', fontWeight: 400, color: '#111827', marginBottom: '10px', textAlign: 'center' }}>Welcome back</h2>
+              <h2 style={{ fontFamily: "'Fraunces', serif", fontSize: '34px', fontWeight: 400, color: '#111827', marginBottom: '10px', textAlign: 'center' }}>Welcome</h2>
               <p style={{ fontSize: '15px', color: '#6b7280', marginBottom: '36px', textAlign: 'center' }}>Sign in to access your document analysis dashboard</p>
 
               {error && (
@@ -478,11 +502,16 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       onChange={(e) => setPassword(e.target.value)}
                       onKeyDown={(e) => handleLoginKeyDown(e, 'password')}
                       placeholder="••••••••"
-                      style={{ ...inputStyle, paddingRight: '48px' }}
+                      style={{ ...inputStyle, paddingRight: '48px', MozAppearance: 'textfield' } as any}
                       onFocus={handleInputFocus}
                       onBlur={handleInputBlur}
+                      autoComplete="current-password"
                     />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', lineHeight: 1 }}
+                    >
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
@@ -501,7 +530,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                     <input type="checkbox" style={{ width: '18px', height: '18px', accentColor: BRAND_COLOR }} />
                     Remember me
                   </label>
-                  <button type="button" style={redLinkStyle}>Forgot password?</button>
+                  <button
+                    type="button"
+                    style={redLinkStyle}
+                    onClick={() => {
+                      setForgotError('');
+                      setForgotSuccess('');
+                      setForgotStep(1);
+                      setIsForgotModalOpen(true);
+                    }}
+                  >
+                    Forgot password?
+                  </button>
                 </div>
 
                 <button type="submit" disabled={isLoading} style={solidButtonStyle}>
@@ -590,17 +630,27 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
                 <div style={{ marginBottom: '18px' }}>
                   <label style={labelStyle}>Password</label>
-                  <input
-                    ref={signupPasswordRef}
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => handleSignupKeyDown(e, 'password')}
-                    placeholder="••••••••"
-                    style={inputStyle}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      ref={signupPasswordRef}
+                      type={showSignupPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={(e) => handleSignupKeyDown(e, 'password')}
+                      placeholder="••••••••"
+                      style={{ ...inputStyle, paddingRight: '48px' }}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignupPassword(!showSignupPassword)}
+                      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', lineHeight: 1 }}
+                    >
+                      {showSignupPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                   {password && (
                     <div style={{ marginTop: '10px' }}>
                       <div style={{ height: '6px', backgroundColor: '#e5e7eb', borderRadius: '3px', overflow: 'hidden' }}>
@@ -613,17 +663,27 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
                 <div style={{ marginBottom: '22px' }}>
                   <label style={labelStyle}>Confirm Password</label>
-                  <input
-                    ref={signupConfirmRef}
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    onKeyDown={(e) => handleSignupKeyDown(e, 'confirm')}
-                    placeholder="••••••••"
-                    style={inputStyle}
-                    onFocus={handleInputFocus}
-                    onBlur={handleInputBlur}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      ref={signupConfirmRef}
+                      type={showSignupConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      onKeyDown={(e) => handleSignupKeyDown(e, 'confirm')}
+                      placeholder="••••••••"
+                      style={{ ...inputStyle, paddingRight: '48px' }}
+                      onFocus={handleInputFocus}
+                      onBlur={handleInputBlur}
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
+                      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center', lineHeight: 1 }}
+                    >
+                      {showSignupConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                 </div>
 
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '28px', cursor: 'pointer', fontSize: '14px', color: '#6b7280' }}>
@@ -663,6 +723,301 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           )}
         </div>
       </div>
+
+      {/* FORGOT PASSWORD MODAL */}
+      {isForgotModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          display: 'flex',
+          itemsCenter: 'center',
+          justifyContent: 'center',
+          padding: '16px',
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(8px)',
+        } as any}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              position: 'relative',
+              backgroundColor: 'white',
+              borderRadius: '32px',
+              width: '100%',
+              maxWidth: '420px',
+              padding: '32px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            }}
+          >
+            <button
+              onClick={() => setIsForgotModalOpen(false)}
+              disabled={isForgotLoading}
+              style={{
+                position: 'absolute',
+                right: '24px',
+                top: '24px',
+                padding: '8px',
+                color: '#cbd5e1',
+                cursor: 'pointer',
+                background: 'none',
+                border: 'none',
+                transition: 'color 0.2s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#64748b'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = '#cbd5e1'; }}
+            >
+              <X size={20} />
+            </button>
+
+            <div style={{
+              width: '64px',
+              height: '64px',
+              backgroundColor: '#f0fdf9',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: BRAND_COLOR,
+              marginBottom: '24px'
+            }}>
+              {forgotStep === 1 ? <Mail size={32} /> : forgotStep === 2 ? <CheckCircle size={32} /> : <Key size={32} />}
+            </div>
+
+            <h3 style={{
+              fontSize: '24px',
+              fontWeight: 900,
+              color: '#1e293b',
+              marginBottom: '12px',
+              fontFamily: "'Fraunces', serif"
+            }}>
+              {forgotStep === 1 ? 'Reset Password' : forgotStep === 2 ? 'Verify OTP' : 'Success!'}
+            </h3>
+
+            <p style={{
+              fontSize: '15px',
+              color: '#64748b',
+              marginBottom: '24px',
+              lineHeight: 1.6
+            }}>
+              {forgotStep === 1
+                ? "Enter your email address and we'll send you a 6-digit code to reset your password."
+                : forgotStep === 2
+                  ? `We've sent a code to ${forgotEmail}. Enter it below to continue.`
+                  : "Almost there! Create a new secure password for your account."
+              }
+            </p>
+
+            {forgotError && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '12px 16px',
+                backgroundColor: '#fff1f2',
+                border: '1px solid #ffe4e6',
+                borderRadius: '12px',
+                color: '#e11d48',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Info size={16} /> {forgotError}
+              </div>
+            )}
+
+            {forgotSuccess && (
+              <div style={{
+                marginBottom: '20px',
+                padding: '12px 16px',
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #dcfce7',
+                borderRadius: '12px',
+                color: '#16a34a',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <CheckCircle size={16} /> {forgotSuccess}
+              </div>
+            )}
+
+            {forgotStep === 1 && (
+              <div style={{ marginBottom: '24px' }}>
+                <label style={labelStyle}>Email Address</label>
+                <input
+                  type="email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  style={inputStyle}
+                />
+              </div>
+            )}
+
+            {forgotStep === 2 && (
+              <div style={{ marginBottom: '24px' }}>
+                <label style={labelStyle}>6-Digit Code</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={forgotOtp}
+                  onChange={(e) => setForgotOtp(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  style={{ ...inputStyle, textAlign: 'center', letterSpacing: '8px', fontSize: '24px' }}
+                />
+              </div>
+            )}
+
+            {forgotStep === 3 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+                <div>
+                  <label style={labelStyle}>New Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showForgotNewPass ? 'text' : 'password'}
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      style={{ ...inputStyle, paddingRight: '48px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotNewPass(!showForgotNewPass)}
+                      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center' }}
+                    >
+                      {showForgotNewPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label style={labelStyle}>Confirm New Password</label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showForgotConfirmPass ? 'text' : 'password'}
+                      value={forgotConfirmPassword}
+                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                      placeholder="••••••••"
+                      style={{ ...inputStyle, paddingRight: '48px' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotConfirmPass(!showForgotConfirmPass)}
+                      style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', alignItems: 'center' }}
+                    >
+                      {showForgotConfirmPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button
+                onClick={async () => {
+                  setForgotError('');
+                  setForgotSuccess('');
+                  if (forgotStep === 1) {
+                    if (!forgotEmail) return setForgotError('Email is required');
+                    setIsForgotLoading(true);
+                    try {
+                      const res = await authApi.forgotPassword(forgotEmail);
+                      if (res.success) {
+                        setForgotStep(2);
+                        setForgotSuccess(res.message);
+                      } else {
+                        setForgotError(res.error || 'Failed to send OTP');
+                      }
+                    } catch (err: any) {
+                      setForgotError(err.message || 'Network error');
+                    } finally {
+                      setIsForgotLoading(false);
+                    }
+                  } else if (forgotStep === 2) {
+                    if (forgotOtp.length !== 6) return setForgotError('Enter 6-digit OTP');
+
+                    setIsForgotLoading(true);
+                    try {
+                      const res = await authApi.verifyResetOtp(forgotEmail, forgotOtp);
+                      if (res.success) {
+                        setForgotStep(3);
+                      } else {
+                        setForgotError(res.error || 'Invalid OTP');
+                      }
+                    } catch (err: any) {
+                      setForgotError(err.message || 'Network error');
+                    } finally {
+                      setIsForgotLoading(false);
+                    }
+                  } else if (forgotStep === 3) {
+                    if (forgotNewPassword.length < 6) return setForgotError('Password must be at least 6 characters');
+                    if (forgotNewPassword !== forgotConfirmPassword) return setForgotError('Passwords do not match');
+
+                    setIsForgotLoading(true);
+                    try {
+                      const res = await authApi.resetPassword({
+                        email: forgotEmail,
+                        otp: forgotOtp,
+                        newPassword: forgotNewPassword
+                      });
+                      if (res.success) {
+                        setForgotSuccess('Success! Password updated.');
+                        setTimeout(() => {
+                          setIsForgotModalOpen(false);
+                          setForgotStep(1);
+                          setForgotEmail('');
+                          setForgotOtp('');
+                          setForgotNewPassword('');
+                          setForgotConfirmPassword('');
+                        }, 2000);
+                      } else {
+                        setForgotError(res.error || 'Failed to reset password');
+                      }
+                    } catch (err: any) {
+                      setForgotError(err.message || 'Network error');
+                    } finally {
+                      setIsForgotLoading(false);
+                    }
+                  }
+                }}
+                disabled={isForgotLoading}
+                style={solidButtonStyle}
+              >
+                {isForgotLoading
+                  ? 'Processing...'
+                  : forgotStep === 1 ? 'Send Reset Code' : forgotStep === 2 ? 'Continue' : 'Update Password'
+                }
+              </button>
+
+              {forgotStep > 1 && (
+                <button
+                  onClick={() => setForgotStep((forgotStep - 1) as any)}
+                  disabled={isForgotLoading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    padding: '14px',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '16px',
+                    color: '#64748b',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; }}
+                >
+                  <ArrowLeft size={16} /> Back
+                </button>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
