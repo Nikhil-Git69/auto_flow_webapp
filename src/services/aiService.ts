@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const AI_API_URL = 'http://localhost:8000'; // Your FastAPI address
+// const AI_API_URL = 'https://auto-flow-backend.onrender.com'; // Your FastAPI address
 
 export const analyzeDocument = async (file: File) => {
   const formData = new FormData();
