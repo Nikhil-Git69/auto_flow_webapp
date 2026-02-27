@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { userApi } from '../services/api';
 import TeamWorkBro from '../assets/Team work-bro.svg';
-
+const Image_API_URL = import.meta.env.VITE_API_URL;
 
 interface ProfilePageProps {
   user: any;
@@ -161,13 +161,13 @@ const ProfilePage: React.FC<ProfilePageProps> = ({
     if (!user.logoUrl) return null;
     if (user.logoUrl.startsWith('http')) return user.logoUrl;
     // Serve from backend if it's a relative path starting with /uploads
-    return `http://localhost:5000${user.logoUrl}`;
+    return `${Image_API_URL}${user.logoUrl}`;
   };
 
   const getBannerUrl = () => {
     if (!bannerBg) return null;
     if (bannerBg.startsWith('http') || bannerBg.startsWith('data:')) return bannerBg;
-    return `http://localhost:5000${bannerBg}`;
+    return `${Image_API_URL}${bannerBg}`;
   };
 
   const bannerUrl = getBannerUrl();
