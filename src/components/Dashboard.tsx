@@ -179,7 +179,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                   }`}
               >
                 {type.toUpperCase()}
-                
+
               </button>
             ))}
           </div>
@@ -231,7 +231,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <tr>
                 <th className="px-8 py-4">Document</th>
                 <th className="px-8 py-4">Type</th>
-                <th className="px-8 py-4">Date</th>
+                {/* <th className="px-8 py-4">Date</th> */}
                 <th className="px-8 py-4 text-right">Options</th>
               </tr>
             </thead>
@@ -256,11 +256,11 @@ const Dashboard: React.FC<DashboardProps> = ({
                       {doc.formatType || 'Default'}
                     </span>
                   </td>
-                  <td className="px-8 py-5 text-sm text-slate-500 font-medium">
+                  {/* <td className="px-8 py-5 text-sm text-slate-500 font-medium">
                     {doc.uploadDate
                       ? new Date(doc.uploadDate).toISOString().slice(0, 10)
                       : '—'}
-                  </td>
+                  </td> */}
                   <td className="px-8 py-5 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button

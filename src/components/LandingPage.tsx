@@ -46,7 +46,7 @@ const LandingPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        const sections = ['hero', 'how-it-works', 'templates', 'features'];
+        const sections = ['hero', 'how-it-works', 'Workflows', 'features'];
         const observers: IntersectionObserver[] = [];
 
         sections.forEach((id) => {
@@ -103,7 +103,7 @@ const LandingPage: React.FC = () => {
 
                     {/* Desktop Nav */}
                     <div className="hidden md:flex items-center gap-8">
-                        {[{ id: 'how-it-works', label: 'How It Works' }, { id: 'templates', label: 'Workflows' }, { id: 'features', label: 'Features' }].map(({ id, label }) => (
+                        {[{ id: 'how-it-works', label: 'How It Works' }, { id: 'Workflows', label: 'Workflows' }, { id: 'features', label: 'Features' }].map(({ id, label }) => (
                             <button
                                 key={id}
                                 onClick={() => scrollToSection(id)}
@@ -141,7 +141,7 @@ const LandingPage: React.FC = () => {
                             className="md:hidden bg-white border-b border-slate-100 overflow-hidden"
                         >
                             <div className="px-6 py-4 flex flex-col gap-4">
-                                <button onClick={() => scrollToSection('templates')} className="text-sm font-medium text-slate-600 py-2 text-left">Workflows</button>
+                                <button onClick={() => scrollToSection('Workflows')} className="text-sm font-medium text-slate-600 py-2 text-left">Workflows</button>
                                 <button onClick={() => scrollToSection('features')} className="text-sm font-medium text-slate-600 py-2 text-left">Features</button>
                                 <button onClick={() => scrollToSection('how-it-works')} className="text-sm font-medium text-slate-600 py-2 text-left">How It Works</button>
                                 <div className="h-px bg-slate-100 my-2"></div>
@@ -329,8 +329,8 @@ const LandingPage: React.FC = () => {
                 </div>
             </section >
 
-            {/* Templates Showcase */}
-            < section id="templates" className="py-24 px-6 scroll-mt-24" >
+            {/* Workflows Showcase */}
+            < section id="Workflows" className="py-24 px-6 scroll-mt-24" >
                 <div className="max-w-[1400px] mx-auto">
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
                         <motion.div
@@ -526,7 +526,7 @@ const LandingPage: React.FC = () => {
                             <h4 className="font-bold text-slate-900 mb-6 text-lg tracking-tight">Product</h4>
                             <ul className="space-y-4">
                                 <li><a href="#features" className="text-slate-500 hover:text-[#159e8a] hover:translate-x-1 inline-block transition-all duration-300 font-medium">Features</a></li>
-                                <li><a href="#templates" className="text-slate-500 hover:text-[#159e8a] hover:translate-x-1 inline-block transition-all duration-300 font-medium">Workflows</a></li>
+                                <li><a href="#Workflows" className="text-slate-500 hover:text-[#159e8a] hover:translate-x-1 inline-block transition-all duration-300 font-medium">Workflows</a></li>
                                 <li><a href="#how-it-works" className="text-slate-500 hover:text-[#159e8a] hover:translate-x-1 inline-block transition-all duration-300 font-medium">How it Works</a></li>
                                 <li><a href="#!" onClick={(e) => e.preventDefault()} className="text-slate-500 hover:text-[#159e8a] hover:translate-x-1 inline-block transition-all duration-300 font-medium">Pricing</a></li>
                             </ul>

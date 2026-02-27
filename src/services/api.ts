@@ -438,14 +438,11 @@ export const analysisApi = {
       'application/pdf',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/plain',
-      'image/png',
-      'image/jpeg',
-      'image/jpg'
+      'text/plain'
     ];
 
     const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-    const allowedExtensions = ['pdf', 'doc', 'docx', 'txt', 'png', 'jpg', 'jpeg'];
+    const allowedExtensions = ['pdf', 'doc', 'docx', 'txt'];
 
     const isTypeValid = allowedTypes.includes(file.type);
     const isExtensionValid = allowedExtensions.includes(fileExtension);
@@ -453,7 +450,7 @@ export const analysisApi = {
     if (!isTypeValid && !isExtensionValid) {
       return {
         valid: false,
-        message: `Invalid file type. Allowed: PDF, Word (DOC/DOCX), Text, Images (PNG, JPG).`
+        message: `Invalid file type. Allowed: PDF, Word (DOC/DOCX), Text.`
       };
     }
 

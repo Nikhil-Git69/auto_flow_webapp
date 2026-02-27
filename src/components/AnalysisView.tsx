@@ -640,7 +640,7 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
                         // Switch to Original view
                         if (isWord) {
                           // Reset content to original
-                          setEditedContent(file.textContent || '');
+                          setEditedContent(analysis.processedContent || file.textContent || '');
                         } else {
                           setHighlightedPdfUrl(null);
                         }
@@ -757,9 +757,13 @@ const AnalysisView: React.FC<AnalysisViewProps> = ({ file, analysis, onBack }) =
                   onEditorChange={handleEditorChange}
                 />
               ) : (
-                <div className="flex-1 overflow-auto p-8 scroll-smooth overscroll-contain">
+                <div className="flex-1 overflow-auto p-8 scroll-smooth overscroll-contain bg-white">
                   {file.mimeType.startsWith('image/') ? (
                     <img src={file.previewUrl} alt="Preview" className="w-full h-auto" />
+                  ) : isWord ? (
+                    <div className="prose max-w-none text-slate-800 whitespace-pre-wrap font-sans">
+                      {analysis.processedContent || file.textContent || "No text content available."}
+                    </div>
                   ) : (
                     <object
                       data={file.previewUrl} // Always show original for now

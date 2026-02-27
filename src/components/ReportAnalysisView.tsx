@@ -156,9 +156,15 @@ const ReportAnalysisView: React.FC = () => {
 
                                     <button
                                         onClick={async () => {
+                                            const isPdf = analysis.fileName?.toLowerCase().endsWith('.pdf') || analysis.fileType === 'application/pdf';
+                                            setShowPreview(true);
+
+                                            if (!isPdf) {
+                                                return; // Skip fetching for non-PDFs to prevent auto-download
+                                            }
+
                                             try {
                                                 setPreviewLoading(true);
-                                                setShowPreview(true);
                                                 const url = await analysisApi.getDocumentPreviewUrl(analysis.analysisId);
                                                 setPreviewUrl(url);
                                             } catch (err) {
@@ -234,12 +240,28 @@ const ReportAnalysisView: React.FC = () => {
                                     <p className="text-slate-500 font-medium">Loading document preview...</p>
                                 </div>
                             )}
-                            {previewUrl && (
+                            {!previewLoading && (analysis.fileName?.toLowerCase().endsWith('.pdf') || analysis.fileType === 'application/pdf') && previewUrl && (
                                 <iframe
                                     src={`${previewUrl}#toolbar=0`}
                                     className="w-full h-full border-none"
                                     title="Document Preview"
                                 />
+                            )}
+                            {!previewLoading && !(analysis.fileName?.toLowerCase().endsWith('.pdf') || analysis.fileType === 'application/pdf') && (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50 z-10 p-8 text-center">
+                                    <FileText className="w-16 h-16 text-slate-400 mb-4" />
+                                    <h4 className="text-lg font-bold text-slate-700 mb-2">Preview Not Available</h4>
+                                    <p className="text-slate-500 mb-6 max-w-md">Live preview is currently only available for PDF documents. Please download the original file to view its contents.</p>
+                                    <button
+                                        onClick={() => {
+                                            setShowPreview(false);
+                                            document.getElementById('download-btn-report')?.click();
+                                        }}
+                                        className="py-2 px-6 bg-[#159e8a] text-white font-medium rounded-lg hover:bg-teal-600 transition-colors"
+                                    >
+                                        Download Document
+                                    </button>
+                                </div>
                             )}
                         </div>
                     </div>

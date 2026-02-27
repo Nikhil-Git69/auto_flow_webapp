@@ -35,11 +35,28 @@ const AdminUploadPreviewModal: React.FC<AdminUploadPreviewModalProps> = ({
                 </div>
 
                 {/* Iframe — browser renders the file natively (PDF, image, etc.) */}
-                <iframe
-                    src={fileUrl}
-                    className="flex-1 w-full border-none"
-                    title={`Preview: ${fileName}`}
-                />
+                {fileName.toLowerCase().endsWith('.pdf') ? (
+                    <iframe
+                        src={fileUrl}
+                        className="flex-1 w-full border-none"
+                        title={`Preview: ${fileName}`}
+                    />
+                ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center bg-slate-50 p-8 text-center">
+                        <div className="w-16 h-16 bg-slate-200 rounded-full flex items-center justify-center mb-4">
+                            <span className="text-2xl font-bold text-slate-500">{fileName.split('.').pop()?.toUpperCase()}</span>
+                        </div>
+                        <h4 className="text-lg font-bold text-slate-700 mb-2">Preview Not Available</h4>
+                        <p className="text-slate-500 mb-6 max-w-md">Live preview is currently only available for PDF documents. Please download the file to view its contents.</p>
+                        <a
+                            href={fileUrl}
+                            download={fileName}
+                            className="py-2 px-6 bg-[#159e8a] text-white font-medium rounded-lg hover:bg-teal-600 transition-colors"
+                        >
+                            Download Document
+                        </a>
+                    </div>
+                )}
             </div>
         </div>
     );
