@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import Stats from './Stats';
 import UploadRafiki from '../assets/Upload-rafiki.svg';
+const Image_API_URL = import.meta.env.VITE_API_URL;
+
 
 interface DashboardProps {
   user: User;
@@ -147,7 +149,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="w-12 h-12 rounded-full overflow-hidden border-[3px] border-white shadow-[0_0_0_2px_#159e8a,0_4px_10px_rgba(21,158,138,0.2)] bg-[#159e8a] flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
               {(user.logoUrl && !imageError) ? (
                 <img
-                  src={user.logoUrl.startsWith('http') ? user.logoUrl : `http://localhost:5000${user.logoUrl}`}
+                  src={user.logoUrl.startsWith('http') ? user.logoUrl : `${Image_API_URL}${user.logoUrl}`}
                   alt="Profile"
                   className="w-full h-full object-cover"
                   onError={(e) => {
