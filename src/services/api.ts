@@ -1,6 +1,8 @@
 import { getAuthHeaders } from './authService';
 
-const API_BASE_URL = 'http://localhost:5000';
+// const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 
 // Generic fetch wrapper with auth
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {

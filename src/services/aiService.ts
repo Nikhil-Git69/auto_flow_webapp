@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const AI_API_URL = 'http://localhost:8000'; // Your FastAPI address
+// const AI_API_URL = 'http://localhost:8000'; // Your FastAPI address
+const AI_API_URL = import.meta.env.VITE_API_URL;
+
 
 export const analyzeDocument = async (file: File) => {
   const formData = new FormData();

@@ -1,6 +1,8 @@
 import { getAuthHeaders, getToken } from './authService';
 
-const API_BASE_URL = 'http://localhost:5000';
+// const API_BASE_URL = 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 
 const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     const headers = {
