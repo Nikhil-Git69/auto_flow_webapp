@@ -476,7 +476,7 @@ export const userApi = {
     const { 'Content-Type': _, ...headers } = authHeaders;
 
     // We cannot use fetchWithAuth directly because we need to omit Content-Type for FormData
-    const response = await fetch(`http://localhost:5000/users/${userId}/avatar`, {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/avatar`, {
       method: 'POST',
       headers,
       body: formData
@@ -496,7 +496,7 @@ export const userApi = {
     const authHeaders = getAuthHeaders() as Record<string, string>;
     const { 'Content-Type': _, ...headers } = authHeaders;
 
-    const response = await fetch(`http://localhost:5000/users/${userId}/banner`, {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/banner`, {
       method: 'POST',
       headers,
       body: formData
